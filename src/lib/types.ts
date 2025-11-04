@@ -9,4 +9,5 @@ export type Repo = {
   forks_count: number;
   open_issues_count: number;
   updated_at: string;
+  owner: string;
 };
