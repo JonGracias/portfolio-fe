@@ -12,7 +12,6 @@
 - NEXT_PUBLIC_BASE_URL (http://localhost:3000 for dev, your site URL in prod)
 - GITHUB_CLIENT_ID=YOUR_GITHUB_CLIENT_ID
 - GITHUB_CLIENT_SECRET=YOUR_GITHUB_CLIENT_SECRET
-- NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
 Run locally:
 ```bash
