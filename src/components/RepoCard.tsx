@@ -3,86 +3,37 @@
 import { useState, useEffect, useRef, JSX } from "react";
 import { Repo } from "@/lib/types";
 
-export default function RepoCard(
-  { repo, setHoverPos, setHoveredRepo/* , onWheel */ }: 
-  { repo: Repo; setHoverPos: (pos: { top: number; left: number; height: number; width: number }) => void;
-                setHoveredRepo: (repo: Repo | null) => void 
-                /* onWheel: (e: React.WheelEvent) => void */ }): JSX.Element {
-  
-  const [count, setCount] = useState<number>(repo.stargazers_count);
+export default function RepoCard({
+      repo,
+      starred,
+      setStarred,
+      isLoaded,
+      setIsLoaded,
+      count,
+      setCount,
+    }: {
+      repo: Repo;
+      starred: boolean;
+      setStarred: (value: boolean) => void;
+      isLoaded: boolean;
+      setIsLoaded: (value: boolean) => void;
+      count: number;
+      setCount: (value: number) => void;
+    }): JSX.Element {
+
   const [starring, setStarring] = useState<boolean>(false);
-  const [starred, setStarred] = useState<boolean>(false);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [message, setMessage] = useState<string | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+
   const updated: string = new Date(repo.updated_at).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 
- // measure once after render
-  const [position, setPosition] = useState<{ 
-    top: number; 
-    left: number; 
-    width: number; 
-    height: number; 
-  } | null>(null);
-
-  useEffect(() => {
-    if (cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height
-      });
-    }
-  }, []); // runs once after mount
-
-  const handleHover = (repo: Repo): void => {
-    if (!position) return; // safety check
-    setHoverPos({
-      top: position.top,
-      left: position.left,
-      width: position.width,
-      height: position.height,
-    });
-    setHoveredRepo(repo);
-  };
-
-  const handleLeave = (): void => {
-    setHoveredRepo(null);
-  };
-
-  useEffect(() => {
-    const updatePosition = () => {
-      if (cardRef.current) {
-        const rect = cardRef.current.getBoundingClientRect();
-        setPosition({
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height
-        });
-      }
-    };
-
-    // Measure initially
-    updatePosition();
-
-    // Recalculate on window resize or scroll
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-    };
-  }, []);
-
-
+  // Pass Scroll Events
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -90,7 +41,6 @@ export default function RepoCard(
         top: e.deltaY,
         behavior: "smooth",
       });
-      setHoveredRepo(null);
     };
 
     const popup = document.getElementById("popup-card");
@@ -99,18 +49,24 @@ export default function RepoCard(
     return () => popup?.removeEventListener("wheel", handleWheel);
   }, []);
 
-
+  // Check Star 
   useEffect(() => {
     async function checkStarred(): Promise<void> {
-      const res = await fetch(`/api/github/starred?owner=${repo.owner}&repo=${repo.name}`, {
-        cache: "no-store",
-      });
-      const data = await res.json();
-      if (data.authed && data.starred) setStarred(true);
+      try {
+        const res = await fetch(`/api/github/starred?owner=${repo.owner}&repo=${repo.name}`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+
+        if (data.authed && data.starred) setStarred(true);
+      } finally {
+        setIsLoaded(true); // ✅ mark it as done, success or fail
+      }
     }
     checkStarred();
   }, [repo.owner, repo.name]);
 
+  // Handle Star
   async function handleStar(): Promise<void> {
     setStarring(true);
     try {
@@ -135,10 +91,12 @@ export default function RepoCard(
     }
   }
 
+  // Handle Unstar
   async function handleUnStar(): Promise<void> {
     setShowConfirm(true);
   }
 
+  // Confirm Unstar - Joke Message
   function confirmUnstar(choice: "yes" | "no"): void {
     if (choice === "yes") {
       setMessage("😆 Not allowed!");
@@ -151,16 +109,15 @@ export default function RepoCard(
   }
 
   return (
-    <div 
+    // MAIN CONTAINER
+    < section
       ref={cardRef}
-      onMouseEnter={(e) => handleHover(repo)}
-      onMouseLeave={handleLeave}
       className={[
         "group block w-full rounded-xl border shadow-sm",
         "bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700",
-        "hover:border-blue-400 focus-within:border-blue-400 active:border-blue-400",
+        "hover:border-blue-400  active:border-blue-400",
         "transform-gpu origin-center transition-transform duration-200 ease-out",
-        "group-active:scale-105 focus-within:scale-105 group-hover:scale-105",
+        "hover:scale-105",
         "relative z-0 md:group-hover:z-20 md:group-focus-within:z-20 md:group-hover-within:overflow-visible",
         "hover:shadow-xl focus:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500",
         "min-h-[12rem]",
@@ -173,59 +130,81 @@ export default function RepoCard(
           href={repo.html_url}
           target="_blank"
           rel="noreferrer"
-          className="h-full block" 
-        >
+          className="h-full block" >
+        
+          {/* Card Inner Grid */}
           <div className="grid h-full grid-rows-[auto,auto,auto,auto] gap-2 p-5">
+
+            {/* Repo Name & Description */}
             <h3 className="text-xl font-semibold text-blue-800 dark:text-blue-400 truncate z-10">
               {repo.name}
             </h3>
-            <div className="overflow-hidden">
-              <div
-                className="
+            <div className="
+                  overflow-hidden
                   text-sm text-gray-600 dark:text-gray-300 leading-5 break-words
                   max-h-[4rem] min-h-[4rem] opacity-70
                   transition-[max-height,opacity] duration-200 ease-out
                   group-hover:max-h-40 group-hover:opacity-100
-                  group-focus-within:max-h-40 group-focus-within:opacity-100
-                "
-              >
-                {repo.description ?? "No description"}
-              </div>
+                  group-focus-within:max-h-40 group-focus-within:opacity-100">
+              {repo.description ?? "No description"}
             </div>
-            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>{repo.language ?? "Unknown"}</span>
-              <div>
-                {!starred && (
-                  <button
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleStar();
-                    }}
-                    disabled={starring || starred}
-                    className="text-yellow-600 hover:text-yellow-700 font-semibold transition-colors"
-                  >
-                    {starring ? "Starring..." : `${count} ☆`}
-                  </button>
-                )}
-                {starred && (
-                  <button
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleUnStar();
-                    }}
-                    disabled={starring}
-                    className="text-yellow-600 hover:text-yellow-700 font-semibold transition-colors"
-                  >
-                    {count}⭐
-                  </button>
-                )}
+
+            {/* Languages and Stars Row */}
+            <div className="
+                  flex items-center justify-between 
+                  text-base sm:text-sm
+                  px-4 py-2 sm:px-0 py-0
+                  text-gray-500 dark:text-gray-400">
+                       
+              {/* Languages */}
+              <div className="w-1/2 text-left truncate">
+                <span>{repo.language ?? "Unknown"}</span>
               </div>
+
+              {/* Star/UnStar Container */}
+              {isLoaded &&
+              <div className="
+                    text-sm text-gray-500 dark:text-gray-400
+                    w-1/2 text-right truncate">
+                      
+                  {/* Star Button */}
+                  {!starred && (
+                    <button
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleStar();
+                      }}
+                      disabled={starring || starred}
+                      className="text-yellow-600 hover:text-yellow-700 font-semibold transition-colors">
+                      {starring ? "Starring..." : `${count} ☆`}
+                    </button>
+                  )}
+            
+                  {/* Unstar Button */}
+                  {starred && (
+                    <button
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleUnStar();
+                      }}
+                      disabled={starring}
+                      className="text-yellow-600 hover:text-yellow-700 font-semibold transition-colors">
+                      {count}⭐
+                    </button>
+                  )} 
+              </div>
+              }
+              
             </div>
+        
+
+            {/* Updated At */}    
             <div className="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Updated {updated}
             </div>
+
           </div>
         </a>
       )}
@@ -267,6 +246,6 @@ export default function RepoCard(
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }
