@@ -36,10 +36,10 @@ body {
 
 
 
-/* Hide scrollbar space and style when visible */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;            /* scrollbar thickness */
-  background: transparent; /* invisible background */
+/* Always-visible scrollbar with white thumb border */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.4) transparent; /* Firefox */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -47,7 +47,7 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent;
+  background:  rgba(255, 255, 255, 0.25);  
   border-radius: 9999px;
   transition: background 0.3s ease;
 }
@@ -64,11 +64,9 @@ body {
 /* For Firefox */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  scrollbar-color:  rgba(107, 114, 128, 0.4) transparent;
 }
-.custom-scrollbar:hover {
-  scrollbar-color: rgba(107, 114, 128, 0.4) transparent;
-}
+
 
 html {
   scrollbar-gutter: stable both-edges;
