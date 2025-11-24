@@ -1,73 +1,110 @@
-﻿// src/components/RepoCard.tsx
-"use client";
-import { useState, useEffect, useRef, JSX } from "react";
-import { useRepoContext } from "@/context/RepoContext";
-import { Repo } from "@/lib/types";
-import  LanguageDisplay  from "./LanguageDisplay"
-import  StarButton  from "./StarButton"
-import  PlayButton  from "./PlayButton"
+﻿"use client";
 
-export default function RepoList({ repo }: { repo: Repo }) {
+import { useEffect, useRef, memo } from "react";
+import { Repo } from "@/lib/types";
+import LanguageDisplay from "./LanguageDisplay";
+import StarButton from "./StarButton";
+import PlayButton from "./GitHubButton";
+
+export default memo(function RepoCard({ repo }: { repo: Repo }) {
   const updated = new Date(repo.updated_at).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
-  const cardRef = useRef<HTMLParagraphElement>(null);
+
+  const cardRef = useRef<HTMLDivElement>(null);
   const descRef = useRef<HTMLParagraphElement>(null);
-  const scrollInterval = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollInterval = useRef<NodeJS.Timeout | null>(null);
 
+  const buttonClass = [
+    "h-[4rem] w-[4rem]",
+    "flex items-center justify-center",
+    "rounded-lg m-1",
+    "border border-white dark:border-neutral-900",
+    "hover:border-blue-400 dark:hover:border-orange-400",
+  ].join(" ");
+
+  //
+  // ────────────────────────────────────────────────────────────────
+  // Popup wheel scroll forwarding (NO document.getElementById)
+  // ────────────────────────────────────────────────────────────────
+  //
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    const forwardWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const container = document.querySelector(".scroll-container");
+      if (container) {
+        container.scrollBy({ top: e.deltaY, behavior: "smooth" });
+      }
+    };
+
+    // Only enable when card is inside popup container
+    if (card.closest("#popup-card")) {
+      card.addEventListener("wheel", forwardWheel, { passive: false });
+      return () => card.removeEventListener("wheel", forwardWheel);
+    }
+  }, []);
+
+  //
+  // ────────────────────────────────────────────────────────────────
+  // Auto-scroll description
+  // ────────────────────────────────────────────────────────────────
+  //
   function startAutoScroll() {
-    if (!descRef.current) return;
+    const el = descRef.current;
+    if (!el) return;
 
-    stopAutoScroll(); // prevent double intervals
-
-    scrollInterval.current = setInterval(() => {
-      const el = descRef.current;
-      if (!el) return;
-
-      // Stop if we've hit the bottom
+    stopAutoScroll();
+    autoScrollInterval.current = setInterval(() => {
       if (el.scrollTop + el.clientHeight >= el.scrollHeight) return;
-
-      el.scrollTop += 1; // scroll speed (px per tick)
-    }, 80); // scroll speed interval
+      el.scrollTop += 1;
+    }, 80);
   }
 
   function stopAutoScroll() {
-    if (scrollInterval.current) {
-      clearInterval(scrollInterval.current);
-      scrollInterval.current = null;
+    if (autoScrollInterval.current) {
+      clearInterval(autoScrollInterval.current);
+      autoScrollInterval.current = null;
     }
   }
 
-
+  //
+  // ────────────────────────────────────────────────────────────────
+  // Component
+  // ────────────────────────────────────────────────────────────────
+  //
   return (
     <section
       ref={cardRef}
       onMouseEnter={startAutoScroll}
       onMouseLeave={() => {
         stopAutoScroll();
-        if (descRef.current) descRef.current.scrollTop = 0; // reset if desired
+        if (descRef.current) descRef.current.scrollTop = 0;
       }}
       className={[
-        "group block w-full rounded-xl border shadow-sm",
+        "group block rounded-xl border shadow-sm",
         "bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700",
         "hover:border-blue-400 hover:shadow-xl",
         "transition-transform duration-200 ease-out",
-        "min-h-[12rem] p-4",
+        "h-[14rem] w-[14rem] p-4",
       ].join(" ")}
     >
-      {/* CLICKABLE INFORMATION BOX */}
+      {/* CLICKABLE INFO PANEL */}
       <a
         href={repo.html_url}
         target="_blank"
         rel="noreferrer"
         className="
-          group/info
-          block w-full rounded-lg 
-          border border-gray-200 dark:border-neutral-700 
+          group/info block w-full rounded-lg 
+          border border-white dark:border-neutral-900
           p-3 relative 
-          hover:border-blue-400 dark:hover:border-orange-400 /hover:bg-blue-50/40">
+          hover:border-blue-400 dark:hover:border-orange-400
+        "
+      >
         <h3 className="text-xl font-semibold text-blue-800 dark:text-blue-400 truncate">
           {repo.name}
         </h3>
@@ -79,45 +116,44 @@ export default function RepoList({ repo }: { repo: Repo }) {
         <p
           ref={descRef}
           className="
-            relative
-            text-sm text-gray-600 dark:text-gray-300 leading-5 break-words
-            max-h-[2.5rem] min-h-[2.5rem]
-            overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+            text-sm text-gray-600 dark:text-gray-300 leading-5
+            h-[2.5rem] overflow-y-auto overflow-x-hidden
+            [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
             opacity-70 mt-2
-            transition-all duration-200 ease-out
+            transition-opacity duration-200 ease-out
             group-hover:opacity-100
-            before:absolute before:bottom-0 before:left-0 before:w-full before:h-4
-            before:bg-gradient-to-t before:from-gray-100 dark:before:from-neutral-900 before:to-transparent
           "
         >
           {repo.description ?? "No description"}
         </p>
 
-
-
-        {/* "More..." cue */}
-        <span className="
-        absolute bottom-0 right-2 text-[10px]
-        text-blue-300
-        opacity-0
-        transition-opacity duration-300 ease-out
-        group-hover/info:opacity-70
-        pointer-events-none">
+        <span
+          className="
+            absolute bottom-0 right-2 text-[10px]
+            text-blue-300 opacity-0
+            transition-opacity duration-300 ease-out
+            group-hover/info:opacity-70
+            pointer-events-none
+          "
+        >
           (more…)
         </span>
       </a>
 
-      {/* BUTTON ROW (NOT CLICKABLE LINK AREA) */}
-      <div className="flex items-center justify-between mt-3 px-1">
-        <PlayButton repo={repo} />
-        <StarButton repo={repo} />
-      </div>
+      {/* BUTTON ROW */}
+      <div className="grid grid-cols-3 items-center justify-between h-[4rem]  gap-2">
+        <section className={buttonClass}>
+          <PlayButton repo={repo} />
+        </section>
 
-      {/* LANGUAGES DISPLAY */}
-      <div className="flex items-center justify-center mt-2">
-        <LanguageDisplay repo={repo} />
+        <section className={buttonClass}>
+          <LanguageDisplay repo={repo} />
+        </section>
+
+        <section className={buttonClass}>
+          <StarButton repo={repo} />
+        </section>
       </div>
     </section>
   );
-}
-
+});

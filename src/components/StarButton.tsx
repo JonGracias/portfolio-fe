@@ -1,149 +1,176 @@
-// src/components/RepoCard.tsx
 "use client";
-import { useState, useEffect, useRef, JSX } from "react";
-import { useRepoContext } from "@/context/RepoContext";
+
 import { Repo } from "@/lib/types";
+import { useRepoContext } from "@/context/RepoContext";
+import { useUIContext } from "@/context/UIContext";
+import { useState } from "react";
 
 export default function StarButton({ repo }: { repo: Repo }) {
-  const {
-    starred,
-    setStarred,
-    isLoaded,
-    count,
-    setCount,
-  } = useRepoContext();
-  
+  const { starred, setStarred, count, setCount} = useRepoContext();
+  const { setOverlayMessage, clearOverlay } = useUIContext();
+
   const repoStarred = starred[repo.name] ?? false;
   const starCount = count[repo.name] ?? 0;
 
+  const [starring, setStarring] = useState(false);
 
-  const updateStarred = (value: boolean) =>
-    setStarred(prev => ({ ...prev, [repo.name]: value }));
-  const updateCount = (value: number) =>
-    setCount(prev => ({ ...prev, [repo.name]: value }));
+  //
+  // -------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------
+  //
+  function setStarValue(v: boolean) {
+    setStarred((prev) => ({ ...prev, [repo.name]: v }));
+  }
 
-  const [starring, setStarring] = useState<boolean>(false);
-  const [showConfirm, setShowConfirm] = useState<boolean>(false);
-  const [message, setMessage] = useState<string | null>(null);
+  function setCountValue(v: number) {
+    setCount((prev) => ({ ...prev, [repo.name]: v }));
+  }
 
-  // Handle Star
-  async function handleStar(): Promise<void> {
-    setStarring(true);
+  //
+  // -------------------------------------------------------------------
+  // Star handler
+  // -------------------------------------------------------------------
+  //
+  async function handleStar() {
+    // local cached values
+    const oldValue = repoStarred;
+    const oldCount = starCount;
+
+    // ================
+    // 1. Optimistic UI
+    // ================
+    setStarValue(true);
+    setCountValue(oldCount + 1);
+
     try {
+      // ================
+      // 2. Background API
+      // ================
       const res = await fetch("/api/github/star", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ owner: repo.owner, repo: repo.name }),
+        body: JSON.stringify({ owner: repo.owner, repo: repo.name })
       });
-      const data = await res.json();
 
+      // redirect to login
       if (res.status === 401) {
         window.location.href = "/api/github/login";
         return;
       }
 
+      const data = await res.json();
+
+      // ================
+      // 3. Server truth
+      // ================
       if (data.ok) {
-        updateStarred(true);
-        updateCount(data.count);
+        setStarValue(true);
+        setCountValue(data.count); // canonical GitHub count
+      } else {
+        throw new Error("GitHub error");
       }
-    } finally {
-      setStarring(false);
+
+    } catch (err) {
+      console.error("Star error:", err);
+
+      // ================
+      // 4. Revert on fail
+      // ================
+      setStarValue(oldValue);
+      setCountValue(oldCount);
     }
   }
 
-  // Handle Unstar
-  async function handleUnStar(): Promise<void> {
-    setShowConfirm(true);
+
+  //
+  // -------------------------------------------------------------------
+  // Overlay for "Not Allowed!" joke
+  // -------------------------------------------------------------------
+  //
+  function triggerFunnyUnstarOverlay() {
+    const message = (
+      <div className="flex items-center justify-center text-red-300 font-bold">
+        Not allowed!
+      </div>
+    );
+
+    setOverlayMessage(repo.name, message);
   }
 
-  // Confirm Unstar - Joke Message
-  function confirmUnstar(choice: "yes" | "no"): void {
-    if (choice === "yes") {
-      setMessage("😆 Not allowed!");
-    }
-    setShowConfirm(false);
+  //
+  // -------------------------------------------------------------------
+  // Unstar Confirmation Popup
+  // -------------------------------------------------------------------
+  //
+  function handleUnstarClick() {
+    const dialog = (
+      <section className="mt-6">
+        <p className="mb-4 text-center">
+          Are you sure you want to unstar this repo?
+        </p>
 
-    if (choice === "yes") {
-      setTimeout(() => setMessage(null), 3000);
-    }
+        <div className="flex justify-center gap-4">
+          <button
+            className="px-4 py-2 bg-red-600 text-white rounded-lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              clearOverlay();
+              triggerFunnyUnstarOverlay();
+            }}
+          >
+            Yes
+          </button>
+
+          <button
+            className="px-4 py-2 bg-gray-500 text-white rounded-lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              clearOverlay();
+            }}
+          >
+            No
+          </button>
+        </div>
+      </section>
+    );
+
+    setOverlayMessage(repo.name, dialog);
   }
+
+  //
+  // -------------------------------------------------------------------
+  // UI
+  // -------------------------------------------------------------------
+  //
+  const starButtonClass = "h-[4rem] w-[4rem] flex items-center justify-center";
 
   return (
-    <section className="relative"> 
-      {/* Star/UnStar Container */}
-      {isLoaded &&
-        <div className="
-                text-sm text-gray-500 dark:text-gray-400
-                w-full ">
-                
-            {/* Star Button */}
-            {!repoStarred && (
-                <button
-                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleStar();
-                }}
-                disabled={starring || repoStarred}
-                className="font-semibold p-2 opacity-80 hover:opacity-100 hover:scale-105">
-                    {starring ? "Starring..." : `${starCount} ☆ `}
-                </button>
-            )}
-        
-            {/* Unstar Button */}
-            {repoStarred && (
-              <button
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleUnStar();}}
-              disabled={starring}
-              className="font-semibold p-2 opacity-80 hover:opacity-100 hover:scale-110">
-                  {starCount}⭐ 
-              </button>
-            )} 
-        </div>
-      }
-
-        {/* Confirm Unstar */}
-      <div className="
-            absolute z-50 bottom-1 right-0
-            w-max
-            bg-white dark:bg-neutral-900 
-            border rounded-lg shadow-xl p-2 
-            text-red-600 text-center">
-        {showConfirm && !message && (
-          <div>
-            <div className="grid h-full min-h-[12rem] place-items-center p-5 text-center">
-              <p>Would you like to unstar this?</p>
-              <div className="flex gap-3 mt-2">
-                <button
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    confirmUnstar("yes")}}
-                    className="rounded bg-red-500 text-white hover:bg-red-600">
-                    Yes
-                </button>
-                <button
-                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
-                    confirmUnstar("no")}}
-                    className=" rounded bg-gray-500 hover:bg-gray-600">
-                    No
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Message */}
-        {message && (
-          <div>
-            {message}
-          </div>
-        )}
-      </div>
-    </section>
+    <div className="text-m">
+      {!repoStarred ? (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleStar();
+          }}
+          className={starButtonClass}
+          disabled={starring}
+        >
+          {starring ? "Starring…" : `${starCount} ☆`}
+        </button>
+      ) : (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleUnstarClick();
+          }}
+          className={starButtonClass}
+        >
+          {starCount} ⭐
+        </button>
+      )}
+    </div>
   );
 }

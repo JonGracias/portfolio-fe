@@ -2,25 +2,19 @@
 
 import { useRef, useEffect } from "react";
 import RepoCard from "./RepoCard";
+import RepoFilters from "./RepoFilters";
 import { Repo } from "@/lib/types";
-
 import { useRepoContext } from "@/context/RepoContext";
 import { useUIContext } from "@/context/UIContext";
 
 export default function RepoList() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const hoveredRef = useRef<HTMLDivElement | null>(null);
-  const scale = 1.2;
+  const scale = 1.1;
 
   //
-  // Repo Data Context
+  // Repo Context
   //
-  const {
-    filters,
-    setFilters,
-    languages,
-    visibleRepos,
-  } = useRepoContext();
+  const { visibleRepos } = useRepoContext();
 
   //
   // UI Context
@@ -32,13 +26,16 @@ export default function RepoList() {
     setHoverPos,
     scrolling,
     setScrolling,
+    overlay,
+    overlayPos,
+    setOverlayPos,
+    clearOverlay,
   } = useUIContext();
 
   //
-  // Hover handler
+  // Hover Handler
   //
   function handleMouseEnter(el: HTMLDivElement, repo: Repo) {
-    hoveredRef.current = el;
     setHoveredRepo(repo);
 
     const rect = el.getBoundingClientRect();
@@ -47,37 +44,46 @@ export default function RepoList() {
 
     const containerTop = containerRect.top;
     const containerBottom = containerRect.bottom;
-    const popupHeight = rect.height * scale;
 
-    // default position
-    let topPos = rect.top;
+    // Popup sizing
+    const popupHeight = rect.height;
+    const popupWidth = rect.width;
 
-    // top clamp
+    // Positioning
+    let popupTop = rect.top;
     const minTop = containerTop + 10;
-    if (topPos < minTop) topPos = minTop;
+    if (popupTop < minTop) popupTop = minTop;
 
-    // bottom clamp
-    const popupBottom = topPos + popupHeight;
-    const maxBottom = containerBottom + 20;
-    if (popupBottom > maxBottom) {
-      topPos = maxBottom - popupHeight;
-    }
+    const maxBottom = containerBottom - 20;
+    const popupBottom = popupTop + popupHeight;
+    if (popupBottom > maxBottom) popupTop = maxBottom - popupHeight;
 
+    const popupLeft = rect.left - 15;
+
+    // Hover popup
     setHoverPos({
-      top: topPos,
-      left: rect.left,
-      width: rect.width,
-      height: rect.height,
+      top: popupTop,
+      left: popupLeft,
+      width: popupWidth,
+      height: popupHeight,
+    });
+
+    // Overlay popup
+    setOverlayPos({
+      top: popupTop,
+      left: popupLeft,
+      width: popupWidth + 35,
+      height: popupHeight + 35,
     });
   }
 
   function handleMouseLeave() {
-    hoveredRef.current = null;
     setHoveredRepo(null);
+    clearOverlay();
   }
 
   //
-  // Scroll listener (kills popup while scrolling)
+  // Scroll → hide popup
   //
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -88,6 +94,7 @@ export default function RepoList() {
     const handleScroll = () => {
       setScrolling(true);
       setHoveredRepo(null);
+      clearOverlay();
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => setScrolling(false), 150);
     };
@@ -97,109 +104,101 @@ export default function RepoList() {
       container.removeEventListener("scroll", handleScroll);
       clearTimeout(scrollTimeout);
     };
-  }, [setScrolling, setHoveredRepo]);
+  }, []);
 
+  //
+  // Render
+  //
   return (
-    <section
-      ref={scrollContainerRef}
-      className="
-        scroll-container
-        w-full mx-auto
-        overflow-y-auto overflow-x-hidden
-        custom-scrollbar
-        bg-gray-100 dark:bg-gray-800
-        border border-gray-300 dark:border-gray-700
-        max-w-[20.6rem] sm:max-w-[28rem] md:max-w-[41.1rem] xl:max-w-[54.75rem]
-        [height:calc(100dvh-24rem)] sm:[height:calc(100dvh-20rem)]
-        shadow-md rounded-2xl
-      "
-    >
-      {/* Filter Bar */}
-      <div
-        className="
-          sticky top-0 z-10 bg-gray-100/90 dark:bg-gray-800/90 
-          backdrop-blur border-b border-gray-300 dark:border-gray-700
-          px-4 py-3 rounded-t-2xl flex items-center gap-3
-        "
-      >
-        {/* Language Filter */}
-        <label className="text-sm font-medium">Language:</label>
-        <select
-          value={filters.language}
-          onChange={(e) => setFilters((f) => ({ ...f, language: e.target.value }))}
-          className="
-            px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700
-            bg-white dark:bg-neutral-900 text-sm
-          "
-        >
-          {languages.map((lang) => (
-            <option key={lang} value={lang}>
-              {lang}
-            </option>
-          ))}
-        </select>
-
-        {/* Sort Filter */}
-        <label className="ml-2 text-sm font-medium">Sort:</label>
-        <select
-          value={filters.sortBy}
-          onChange={(e) => setFilters((f) => ({ ...f, sortBy: e.target.value }))}
-          className="
-            px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700
-            bg-white dark:bg-neutral-900 text-sm
-          "
-        >
-          <option value="stars">Most Stars</option>
-          <option value="created">Date Created</option>
-          <option value="activity">Most Activity</option>
-          <option value="updated">Last Updated</option>
-        </select>
-      </div>
-
-      {/* Popup Card */}
-      {!scrolling && hoveredRepo && (
-        <div
-          className="fixed z-[20] transition-transform duration-200 ease-out hidden sm:block"
-          style={{
-            top: `${hoverPos.top}px`,
-            left: `${hoverPos.left - 16}px`,
-            width: hoverPos.width,
-            height: hoverPos.height,
-            transform: `scale(${scale})`,
-          }}
-        >
+    <div>
+      <div onMouseLeave={handleMouseLeave}>
+        {/* Hover Popup */}
+        {!scrolling && hoveredRepo && (
           <div
-            id="popup-card"
-            className="w-full sm:w-[12rem] h-auto"
-            onMouseLeave={handleMouseLeave}
+            className="fixed z-[20] transition-transform duration-200 ease-out hidden sm:block"
+            style={{ ...hoverPos, transform: `scale(${scale})` }}
           >
-            <RepoCard repo={hoveredRepo} />
-          </div>
-        </div>
-      )}
-
-      {/* Repo Grid */}
-      <div
-        className="
-          grid gap-14
-          grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4
-          auto-rows-[12rem]
-          isolate
-          p-5 pt-2.5
-        "
-      >
-        {visibleRepos.map((repo) => (
-          <div
-            key={repo.id}
-            onMouseEnter={(e) => handleMouseEnter(e.currentTarget, repo)}
-            className="relative w-full hover:z-[99] sm:w-[12rem] h-auto"
-          >
-            <div className="sm:pointer-events-none">
-              <RepoCard repo={repo} />
+            <div id="popup-card">
+              <RepoCard repo={hoveredRepo} />
             </div>
           </div>
-        ))}
+        )}
+
+        {/* Overlay */}
+        {overlay && hoveredRepo && overlay.repoName === hoveredRepo.name && (
+
+          <div
+            className="
+              fixed bg-white dark:bg-neutral-900 
+              z-[200] border rounded-md shadow-lg p-2
+               overflow-y-auto overflow-x-hidden custom-scrollbar
+            "
+            style={{ ...overlayPos }}>
+
+            {/* X Button */}
+            <div className="w-full flex justify-end">
+              <button
+                className="
+                px-3 py-1 text-sm
+                bg-neutral-300 dark:bg-neutral-700
+                rounded-md
+                hover:bg-neutral-400 dark:hover:bg-neutral-600
+                "
+                onClick={clearOverlay}
+                >
+                X
+              </button>
+            </div>
+            
+            {/* Content */}
+            <div className="">
+              {overlay.content}
+            </div>
+
+          </div>
+
+        )}
       </div>
-    </section>
+
+      {/* Main Dispay Grid */}
+
+      <div
+        ref={scrollContainerRef}
+        className="
+          scroll-container mx-auto
+          overflow-y-auto overflow-x-hidden
+          custom-scrollbar
+          bg-gray-100 dark:bg-gray-800
+          border border-gray-300 dark:border-gray-700
+          max-w-[70rem] xl:max-w-[170rem]
+          [height:calc(100dvh-24rem)]
+          min-h-[20rem]
+          shadow-md rounded-2xl">
+        {/* Filters */}
+        <RepoFilters />
+
+
+        {/* Grid */}
+        <div
+          className="
+            grid gap-16
+            grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4
+            auto-rows-[12rem]
+            isolate
+            p-5 pt-2.5">
+          {visibleRepos.map((repo) => (
+            <div
+              key={repo.id}
+              onMouseEnter={(e) => handleMouseEnter(e.currentTarget, repo)}
+              className="relative h-full w-full hover:z-[99]"
+            >
+              <div className="sm:pointer-events-none">
+                <RepoCard repo={repo} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
