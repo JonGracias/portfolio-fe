@@ -8,7 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        icon: "#F0F0FF",
+        icon: "#eaeae9e4",
       },
     },
   },

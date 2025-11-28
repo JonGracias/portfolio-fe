@@ -4,12 +4,13 @@ import { useState, useEffect, useMemo, memo } from "react";
 import { useRepoContext } from "@/context/RepoContext";
 import { Repo } from "@/lib/types";
 import { useUIContext } from "@/context/UIContext";
+import  LangIcon  from "./LangIcon";
 import { getLanguageIconUrl } from "@/utils/getLanguageIconUrl";
 import { loadIcon } from "@/utils/iconCache";
 
 export default function LanguageDisplay({ repo }: { repo: Repo }) {
   const { setFilters, displayLanguage } = useRepoContext();
-  const { setOverlayMessage, clearOverlay, setHoveredRepo } = useUIContext();
+  const { setMessageMessage, clearMessage, setHoveredRepo } = useUIContext();
 
   const langMap = repo.languages ?? {};
   const totalBytes = Object.values(langMap).reduce((a, b) => a + b, 0);
@@ -25,76 +26,13 @@ export default function LanguageDisplay({ repo }: { repo: Repo }) {
     return ((bytes / totalBytes) * 100).toFixed(1) + "%";
   }
 
-  /* ────────────────────────────────────────────────
-     ICON COMPONENT WITH FALLBACK
-  ───────────────────────────────────────────────── */
-  const LangIcon = memo(function LangIcon({
-    lang,
-    percentText
-  }: {
-    lang: string;
-    percentText: string;
-  }) {
-    
-    const [iconUrl, setIconUrl] = useState<string | null>(null);
-    const urls = useMemo(() => getLanguageIconUrl(lang), [lang]);
-    const [idx, setIdx] = useState(0);
-
-    useEffect(() => {
-      setIdx(0);
-    }, [lang]);
-
-    const src = urls[idx];
-      useEffect(() => {
-        let active = true;
-        setIconUrl(null); // reset ui to blank while loading
-
-        if (!src) return;
-
-        loadIcon(src)
-          .then((blobUrl) => {
-            if (active) setIconUrl(blobUrl);
-          })
-          .catch(() => setIdx((i) => i + 1));
-
-        return () => {
-          active = false;
-        };
-      }, [src]);
-
-    return (
-      <div className="relative w-14 h-14 flex items-center justify-center">
-        <div className="
-          w-14 h-14 flex items-center justify-center
-          rounded-lg
-          bg-icon
-          backdrop-blur-sm
-          pointer-events-none
-        ">
-          {iconUrl ? (
-            <img src={iconUrl} className="w-12 h-12 rounded-lg" />
-          ) : (
-            <div className="w-12 h-12" />
-          )}
-
-        </div>
-
-        <div className="absolute top-11 left-6 w-10 h-10 flex items-center justify-center">
-          <span className="relative text-[10px] font-bold text-white">
-            {percentText}
-          </span>
-        </div>
-      </div>
-    );
-  });
-
 
   /* ────────────────────────────────────────────────
      CLICK → OPEN OVERLAY WITH 3-COL GRID OF LANGS
   ───────────────────────────────────────────────── */
   function handleClick() {
     if (!langMap || Object.keys(langMap).length === 0) {
-      clearOverlay();
+      clearMessage();
       return;
     }
 
@@ -109,7 +47,7 @@ export default function LanguageDisplay({ repo }: { repo: Repo }) {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          clearOverlay();
+          clearMessage();
           setHoveredRepo(null);
           setFilters((f) => ({ ...f, language: lang }));
         }}
@@ -118,12 +56,17 @@ export default function LanguageDisplay({ repo }: { repo: Repo }) {
       </button>
     ));
 
-    setOverlayMessage(
+    const message = (
+      <section>
+        {/* List of Languages */}
+        <div className="grid grid-cols-2 gap-6 p-4">{entries}
+        </div>
+      </section>
+    );
+
+    setMessageMessage(
       repo.name,
-      <div className="w-full flex flex-col gap-3 p-2">
-        {/* close button row handled by UIContext — you said not to touch */}
-        <div className="grid grid-cols-2 gap-10">{entries}</div>
-      </div>
+      message
     );
   }
 

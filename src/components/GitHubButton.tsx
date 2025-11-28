@@ -17,7 +17,7 @@ export default function GitHubButton({ repo }: { repo: Repo }) {
       "
     >
       <svg
-        className="w-12 h-12
+        className="w-10 h-10
                    text-black dark:text-white
                    fill-current"
         viewBox="0 0 24 24"

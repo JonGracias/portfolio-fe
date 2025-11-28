@@ -40,16 +40,10 @@ export default async function Page() {
         <section
           aria-label="Repository List"
           className="
-            flex flex-col w-full mx-auto 
+            flex flex-col items-center justify-center w-full mx-auto 
             max-w-[70vw]
-            overflow-hidden
-          "
-        >
-          {/* If RepoList should use repos from context, this is correct */}
+            overflow-hidden">
           <RepoList />
-
-          {/* If RepoList expects props, use: */}
-          {/* <RepoList repos={repos} /> */}
         </section>
 
         {/* Footer */}

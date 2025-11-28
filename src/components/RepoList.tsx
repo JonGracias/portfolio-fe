@@ -1,15 +1,24 @@
 ﻿"use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import RepoCard from "./RepoCard";
 import RepoFilters from "./RepoFilters";
+import Popup from "./Popup";
 import { Repo } from "@/lib/types";
 import { useRepoContext } from "@/context/RepoContext";
 import { useUIContext } from "@/context/UIContext";
 
+interface Position {
+  top: number;
+  left: number;
+  scale: number;
+}
+
 export default function RepoList() {
+  const defaultPos: Position = { top: 0, left: 0, scale: 1 };
+  const [hoverPos, setHoverPos] = useState<Position>(defaultPos);
+  const [messagePos, setMessagePos] = useState<Position>(defaultPos);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const scale = 1.1;
 
   //
   // Repo Context
@@ -22,14 +31,10 @@ export default function RepoList() {
   const {
     hoveredRepo,
     setHoveredRepo,
-    hoverPos,
-    setHoverPos,
     scrolling,
     setScrolling,
-    overlay,
-    overlayPos,
-    setOverlayPos,
-    clearOverlay,
+    message,
+    clearMessage,
   } = useUIContext();
 
   //
@@ -37,7 +42,6 @@ export default function RepoList() {
   //
   function handleMouseEnter(el: HTMLDivElement, repo: Repo) {
     setHoveredRepo(repo);
-
     const rect = el.getBoundingClientRect();
     const containerRect = scrollContainerRef.current?.getBoundingClientRect();
     if (!containerRect) return;
@@ -47,7 +51,6 @@ export default function RepoList() {
 
     // Popup sizing
     const popupHeight = rect.height;
-    const popupWidth = rect.width;
 
     // Positioning
     let popupTop = rect.top;
@@ -64,22 +67,20 @@ export default function RepoList() {
     setHoverPos({
       top: popupTop,
       left: popupLeft,
-      width: popupWidth,
-      height: popupHeight,
+      scale: 1.1,
     });
 
-    // Overlay popup
-    setOverlayPos({
+    // Message popup
+    setMessagePos({
       top: popupTop,
       left: popupLeft,
-      width: popupWidth + 35,
-      height: popupHeight + 35,
+      scale: 1,
     });
   }
 
   function handleMouseLeave() {
     setHoveredRepo(null);
-    clearOverlay();
+    clearMessage();
   }
 
   //
@@ -94,7 +95,7 @@ export default function RepoList() {
     const handleScroll = () => {
       setScrolling(true);
       setHoveredRepo(null);
-      clearOverlay();
+      clearMessage();
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => setScrolling(false), 150);
     };
@@ -110,74 +111,31 @@ export default function RepoList() {
   // Render
   //
   return (
-    <div>
-      <div onMouseLeave={handleMouseLeave}>
-        {/* Hover Popup */}
-        {!scrolling && hoveredRepo && (
-          <div
-            className="fixed z-[20] transition-transform duration-200 ease-out hidden sm:block"
-            style={{ ...hoverPos, transform: `scale(${scale})` }}
-          >
-            <div id="popup-card">
-              <RepoCard repo={hoveredRepo} />
-            </div>
-          </div>
-        )}
-
-        {/* Overlay */}
-        {overlay && hoveredRepo && overlay.repoName === hoveredRepo.name && (
-
-          <div
-            className="
-              fixed bg-white dark:bg-neutral-900 
-              z-[200] border rounded-md shadow-lg p-2
-               overflow-y-auto overflow-x-hidden custom-scrollbar
-            "
-            style={{ ...overlayPos }}>
-
-            {/* X Button */}
-            <div className="w-full flex justify-end">
-              <button
-                className="
-                px-3 py-1 text-sm
-                bg-neutral-300 dark:bg-neutral-700
-                rounded-md
-                hover:bg-neutral-400 dark:hover:bg-neutral-600
-                "
-                onClick={clearOverlay}
-                >
-                X
-              </button>
-            </div>
-            
-            {/* Content */}
-            <div className="">
-              {overlay.content}
-            </div>
-
-          </div>
-
-        )}
-      </div>
-
-      {/* Main Dispay Grid */}
-
+    
       <div
         ref={scrollContainerRef}
         className="
-          scroll-container mx-auto
-          overflow-y-auto overflow-x-hidden
-          custom-scrollbar
-          bg-gray-100 dark:bg-gray-800
-          border border-gray-300 dark:border-gray-700
-          max-w-[70rem] xl:max-w-[170rem]
-          [height:calc(100dvh-24rem)]
-          min-h-[20rem]
-          shadow-md rounded-2xl">
+        scroll-container
+        overflow-y-auto overflow-x-hidden
+        custom-scrollbar
+        bg-gray-100 dark:bg-gray-800
+        border border-gray-300 dark:border-gray-700
+        [height:calc(100dvh-24rem)]
+        max-w-[65rem]
+        min-h-[20rem]
+        shadow-md rounded-2xl">
+        <div onMouseLeave={handleMouseLeave}>
+          {/* Hover Popup */} 
+          {!scrolling && hoveredRepo && (
+            <Popup object={<RepoCard repo={hoveredRepo}/>} position={hoverPos} />
+          )}
+          {/* Message */}
+          {message && hoveredRepo && message.repoName === hoveredRepo.name && (
+            <Popup object = {message.content} position={messagePos}/>
+          )}
+        </div>
         {/* Filters */}
         <RepoFilters />
-
-
         {/* Grid */}
         <div
           className="
@@ -185,20 +143,19 @@ export default function RepoList() {
             grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4
             auto-rows-[12rem]
             isolate
-            p-5 pt-2.5">
+            p-5 mr-5 pt-2.5">
           {visibleRepos.map((repo) => (
             <div
               key={repo.id}
               onMouseEnter={(e) => handleMouseEnter(e.currentTarget, repo)}
-              className="relative h-full w-full hover:z-[99]"
-            >
+              className="relative h-full w-full hover:z-[99]">
               <div className="sm:pointer-events-none">
-                <RepoCard repo={repo} />
+                <RepoCard repo={repo}/>
               </div>
             </div>
           ))}
         </div>
       </div>
-    </div>
+   
   );
 }

@@ -7,7 +7,7 @@ import { useState } from "react";
 
 export default function StarButton({ repo }: { repo: Repo }) {
   const { starred, setStarred, count, setCount} = useRepoContext();
-  const { setOverlayMessage, clearOverlay } = useUIContext();
+  const { setMessageMessage, clearMessage } = useUIContext();
 
   const repoStarred = starred[repo.name] ?? false;
   const starCount = count[repo.name] ?? 0;
@@ -85,17 +85,17 @@ export default function StarButton({ repo }: { repo: Repo }) {
 
   //
   // -------------------------------------------------------------------
-  // Overlay for "Not Allowed!" joke
+  // Message for "Not Allowed!" joke
   // -------------------------------------------------------------------
   //
-  function triggerFunnyUnstarOverlay() {
+  function triggerFunnyUnstarMessage() {
     const message = (
       <div className="flex items-center justify-center text-red-300 font-bold">
         Not allowed!
       </div>
     );
 
-    setOverlayMessage(repo.name, message);
+    setMessageMessage(repo.name, message);
   }
 
   //
@@ -115,8 +115,8 @@ export default function StarButton({ repo }: { repo: Repo }) {
             className="px-4 py-2 bg-red-600 text-white rounded-lg"
             onClick={(e) => {
               e.stopPropagation();
-              clearOverlay();
-              triggerFunnyUnstarOverlay();
+              clearMessage();
+              triggerFunnyUnstarMessage();
             }}
           >
             Yes
@@ -126,7 +126,7 @@ export default function StarButton({ repo }: { repo: Repo }) {
             className="px-4 py-2 bg-gray-500 text-white rounded-lg"
             onClick={(e) => {
               e.stopPropagation();
-              clearOverlay();
+              clearMessage();
             }}
           >
             No
@@ -135,7 +135,7 @@ export default function StarButton({ repo }: { repo: Repo }) {
       </section>
     );
 
-    setOverlayMessage(repo.name, dialog);
+    setMessageMessage(repo.name, dialog);
   }
 
   //

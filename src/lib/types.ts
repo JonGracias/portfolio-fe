@@ -14,5 +14,6 @@ export type Repo = {
   created_at: string;
   pushed_at: string;
   updated_at: string;
+  launchUrl?: string | null;
 };
 

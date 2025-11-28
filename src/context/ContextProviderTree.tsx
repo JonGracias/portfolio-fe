@@ -2,6 +2,7 @@
 
 import { RepoProvider } from "./RepoContext";
 import { UIProvider } from "./UIContext";
+import { LanguageIconProvider } from "./LanguageIconContext";
 import { Repo } from "@/lib/types";
 
 interface ContextProviderTreeProps {
@@ -17,7 +18,9 @@ export function ContextProviderTree({ repos, children }: ContextProviderTreeProp
   return (
     <RepoProvider repos={repos}>
       <UIProvider>
-        {children}
+        <LanguageIconProvider repos={repos}>
+          {children}
+        </LanguageIconProvider>
       </UIProvider>
     </RepoProvider>
   );
