@@ -11,10 +11,10 @@ export default function MessageShell({ children, onClose }: MessageShellProps) {
       className="
         bg-gray-100 dark:bg-neutral-800
         border border-gray-300 dark:border-neutral-700
-        shadow-lg rounded-2xl
-        w-[14rem] h-[14.1rem]
+        shadow-lg rounded-xl
         overflow-y-auto overflow-x-hidden
         custom-scrollbar
+        min-h-[13rem] min-w-[13rem]
         relative
       "
     >

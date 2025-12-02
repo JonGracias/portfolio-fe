@@ -4,6 +4,8 @@ import ContextProviderTree from "@/context/ContextProviderTree";
 import RepoList from "@/components/RepoList";
 import { fetchRepos } from "@/lib/github";
 import { Repo } from "@/lib/types";
+import { userAgent } from "next/server";
+import { headers } from "next/headers";
 
 // --------------------
 // SEO Metadata
@@ -31,13 +33,15 @@ export const metadata = {
 
 export default async function Page() {
   const repos: Repo[] = await fetchRepos();
+  const raw = headers();                // ReadonlyHeaders (Next.js)
+  const h = new Headers(await raw);           // Convert to Headers (Web API)
+
+  const ua = userAgent({ headers: h }); // Now valid
+  const isMobile = ua.device.type === "mobile" || ua.device.type === "tablet";
 
   return (
-    <main className="relative flex flex-col min-h-screen overflow-hidden">
-
-      {/* Global App Providers */}
-      <ContextProviderTree repos={repos}>
-
+    <ContextProviderTree repos={repos} isMobile={isMobile}>
+      <main className="relative flex flex-col min-h-screen overflow-hidden">
         {/* Header / Intro */}
         <section
           aria-labelledby="portfolio-heading"
@@ -51,7 +55,7 @@ export default async function Page() {
           <h1
             id="portfolio-heading"
             className="
-              text-4xl font-extrabold
+              md:text-4xl text-2xl font-extrabold
               text-blue-400 dark:text-blue-300
               drop-shadow-sm mb-3
             "
@@ -70,9 +74,9 @@ export default async function Page() {
         <section
           aria-label="Repository List"
           className="
-            flex flex-col items-center justify-center w-full mx-auto
-            max-w-[1000px]   /* Stable, predictable layout */
+            flex flex-col items-center justify-center w-full h-fit mx-auto
             overflow-hidden
+            mb-5
           "
         >
           {/* Accessibility + SEO secondary heading */}
@@ -83,11 +87,11 @@ export default async function Page() {
 
 
         {/* Footer */}
-        <footer className="fixed bottom-10 w-full text-center text-sm text-gray-500">
+        <footer className="w-full h-full min-h- text-center text-sm text-gray-500 mt-5">
           © {new Date().getFullYear()} Jonathan Gracias — Built with Next.js + Tailwind + Azure
         </footer>
 
-      </ContextProviderTree>
-    </main>
+      </main>
+    </ContextProviderTree>
   );
 }

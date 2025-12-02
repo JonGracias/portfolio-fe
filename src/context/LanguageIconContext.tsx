@@ -1,94 +1,92 @@
 "use client";
-
 import React, {
   createContext,
-  useContext,
-  useState,
   useCallback,
-  useMemo,
+  useContext,
   useEffect,
+  useMemo,
+  useState,
+  ReactNode
 } from "react";
 
-import { useRepoContext } from "./RepoContext";
 import { getLanguageIconUrl } from "@/utils/getLanguageIconUrl";
+import { useRepoContext } from "@/context/RepoContext";
 
-type IconCache = Record<string, string | null>;
+type Cache = Record<string, string>;
 
 interface LanguageIconContextType {
   getIcon: (lang: string) => string | null;
-  loadIconsForLanguages: (languages: string[]) => Promise<void>;
+  loadIcons: (langs: string[]) => void;
 }
 
-export const LanguageIconContext = createContext<LanguageIconContextType | null>(null);
+const LanguageIconContext = createContext<LanguageIconContextType | null>(null);
 
-/* ----------------------------------------------------------
- * Utility: Return first URL that resolves (HEAD)
- * ---------------------------------------------------------- */
+// --------------------------------------------------
+// Utility: Check first working URL using HEAD
+// --------------------------------------------------
 async function findFirstWorkingUrl(urls: (string | null)[]) {
-  const checks = urls.map(async (url) => {
-    if (!url) return null;
+  for (const url of urls) {
+    if (!url) continue;
     try {
       const res = await fetch(url, { method: "HEAD" });
       if (res.ok) return url;
     } catch {}
-    return null;
-  });
-
-  const results = await Promise.all(checks);
-  return results.find((r) => r !== null) ?? null;
+  }
+  return null;
 }
 
-/* ----------------------------------------------------------
- * Provider
- * ---------------------------------------------------------- */
-export function LanguageIconProvider({ children }: { children: React.ReactNode }) {
-  const { languages } = useRepoContext();   // ← Pull languages from RepoContext
-  const [cache, setCache] = useState<IconCache>({});
+// --------------------------------------------------
+// Provider
+// --------------------------------------------------
+export function LanguageIconProvider({ children }: { children: ReactNode }) {
+  const { languages } = useRepoContext();
+  const [cache, setCache] = useState<Cache>({});
 
-  /* --------------------------------------------------------
-   * Load icons for given language list (parallel)
-   * -------------------------------------------------------- */
-  const loadIconsForLanguages = useCallback(
-    async (langs: string[]) => {
-      const missing = langs.filter((l) => !(l in cache));
-      if (missing.length === 0) return;
+  const loadIcons = useCallback(async (langs: string[]) => {
+    const missing = langs.filter(
+      (l) => !cache[l] && !localStorage.getItem(`icon:${l}`)
+    );
+    if (missing.length === 0) return;
+  
+    const results = await Promise.all(
+      missing.map(async (lang) => {
+        const urls = getLanguageIconUrl(lang);
+        const resolved = await findFirstWorkingUrl(urls);
+        const finalUrl = resolved ?? "/icons/unknown.svg";
+  
+        try {
+          localStorage.setItem(`icon:${lang}`, finalUrl);
+        } catch {}
+  
+        return [lang, finalUrl] as const;
+      })
+    );
+  
+    const update = Object.fromEntries(results);
+    setCache((prev) => ({ ...prev, ...update }));
+  }, [cache]);
+    
+  useEffect(() => {
+    if (languages.length > 0) {
+      loadIcons(languages);
+    }
+  }, [languages, loadIcons]);
 
-      const results = await Promise.all(
-        missing.map(async (lang) => {
-          const urls = getLanguageIconUrl(lang);
-          const working = await findFirstWorkingUrl(urls);
-          return [lang, working] as const;
-        })
-      );
 
-      setCache((prev) => ({ ...prev, ...Object.fromEntries(results) }));
+
+
+  // Get icon for a single language
+  const getIcon = useCallback(
+    (lang: string) => {
+      if (typeof window === "undefined") return cache[lang] ?? null;
+      return cache[lang] ?? localStorage.getItem(`icon:${lang}`) ?? null;
     },
     [cache]
   );
 
-  /* --------------------------------------------------------
-   * Load all icons when languages change
-   * -------------------------------------------------------- */
-  useEffect(() => {
-    if (languages.length > 0) {
-      loadIconsForLanguages(languages);
-    }
-  }, [languages, loadIconsForLanguages]);
-
-  /* --------------------------------------------------------
-   * API: get icon from cache
-   * -------------------------------------------------------- */
-  const getIcon = useCallback(
-    (lang: string) => cache[lang] ?? null,
-    [cache]
-  );
-
   const value = useMemo(
-    () => ({
-      getIcon,
-      loadIconsForLanguages,
-    }),
-    [getIcon, loadIconsForLanguages]
+    () => ({ getIcon, loadIcons }),
+    [getIcon, loadIcons]
   );
 
   return (
@@ -98,13 +96,11 @@ export function LanguageIconProvider({ children }: { children: React.ReactNode }
   );
 }
 
-/* ----------------------------------------------------------
- * Consumer hook
- * ---------------------------------------------------------- */
+// --------------------------------------------------
+// Consumer Hook
+// --------------------------------------------------
 export function useLanguageIcons() {
   const ctx = useContext(LanguageIconContext);
-  if (!ctx) {
-    throw new Error("useLanguageIcons must be used within LanguageIconProvider");
-  }
+  if (!ctx) throw new Error("useLanguageIconContext must be used inside provider");
   return ctx;
 }

@@ -30,21 +30,31 @@ interface UIContextType {
 
   clearMessage: () => void;
   clearHoveredRepo: () => void;
+  isMobile: boolean;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
 
+interface UIProviderProps {
+  children: React.ReactNode;
+  isMobile: boolean;   // <-- IMPORTANT
+}
+
+
 /* -------------------------------------------------------
  * Provider
  * ------------------------------------------------------- */
-export function UIProvider({ children }: { children: ReactNode }) {
+export function UIProvider({ children, isMobile }: UIProviderProps) {
   const [hoveredRepo, _setHoveredRepo] = useState<Repo | null>(null);
+  
 
   // The global popup message
   const [message, _setMessage] = useState<RepoMessage | null>(null);
 
   // Flag used to hide messages temporarily during scrolling
   const [scrolling, setScrolling] = useState<boolean>(false);
+
+
 
   /* -----------------------------------------------------
    * Message Controls
@@ -95,6 +105,8 @@ export function UIProvider({ children }: { children: ReactNode }) {
 
         clearMessage,
         clearHoveredRepo,
+        
+        isMobile
       }}
     >
       {children}

@@ -1,12 +1,13 @@
 "use client";
 
 import { Repo } from "@/lib/types";
-import { useRepoContext } from "@/context/RepoContext";
+import { useStars } from "@/context/StarContext";
 import { useUIContext } from "@/context/UIContext";
-import { useState } from "react";
+import { useCallback } from "react";
 
 export default function StarButton({ repo }: { repo: Repo }) {
-  const { starred, setStarred, count, setCount} = useRepoContext();
+  const { starred, setStarred, count, setCount, starRepo } = useStars();
+
   const { setMessage, clearMessage } = useUIContext();
 
   const repoStarred = starred[repo.name] ?? false;
@@ -88,7 +89,7 @@ export default function StarButton({ repo }: { repo: Repo }) {
   //
   function triggerFunnyUnstarMessage() {
     const message = (
-      <div className="flex items-center justify-center text-red-300 font-bold">
+      <div className="flex items-center h-full w-full justify-center text-red-300 font-bold">
         Not allowed!
       </div>
     );
@@ -103,14 +104,14 @@ export default function StarButton({ repo }: { repo: Repo }) {
   //
   function handleUnstarClick() {
     const dialog = (
-      <section className="mt-6">
-        <p className="mb-4 text-center">
+      <section className="mt-6 w-[13rem]">
+        <p className="mb-2 text-center">
           Are you sure you want to unstar this repo?
         </p>
 
         <div className="flex justify-center gap-4">
           <button
-            className="px-4 py-2 bg-red-600 text-white rounded-lg"
+            className="px-2 py-2 bg-red-600 text-white rounded-lg"
             onClick={(e) => {
               e.stopPropagation();
               clearMessage();
@@ -121,7 +122,7 @@ export default function StarButton({ repo }: { repo: Repo }) {
           </button>
 
           <button
-            className="px-4 py-2 bg-gray-500 text-white rounded-lg"
+            className="px-2 py-2 bg-gray-500 text-white rounded-lg"
             onClick={(e) => {
               e.stopPropagation();
               clearMessage();

@@ -1,15 +1,24 @@
 ﻿"use client";
 
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, memo, useState } from "react";
 import { Repo } from "@/lib/types";
 import LanguageDisplay from "./LanguageDisplay";
 import StarButton from "./StarButton";
 import GitHubButton from "./GitHubButton";
+import { useUIContext } from "@/context/UIContext";
 import InfoPanel, { RepoCardHandle } from "./InfoPanel";
 
 export default memo(function RepoCard({ repo }: { repo: Repo }) {
   const infoRef = useRef<RepoCardHandle>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const {
+    isMobile,
+    hoveredRepo,
+    setHoveredRepo,
+    clearHoveredRepo,
+  } = useUIContext();
+
+  const isActive = hoveredRepo?.name === repo.name;
 
   function handleEnter() {
     const el = infoRef.current?.getScrollElement?.();
@@ -36,7 +45,7 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
   //
   useEffect(() => {
     const card = cardRef.current;
-    if (!card) return;
+    if (!card || isMobile) return;
 
     const forwardWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -51,7 +60,7 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
       card.addEventListener("wheel", forwardWheel, { passive: false });
       return () => card.removeEventListener("wheel", forwardWheel);
     }
-  }, []);
+  }, [isMobile]);
 
   const buttonClass = [
     "h-[3.5rem] w-[3.5rem]",
@@ -68,21 +77,46 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
   //
   return (
     <section
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-      
+      onMouseEnter={isMobile ? undefined : handleEnter}
+      onMouseLeave={isMobile ? undefined : handleLeave}
       ref={cardRef}
       className={[
-        
-        "group block rounded-xl border shadow-sm",
-        "bg-white dark:bg-neutral-900 border-gray-200 dark:border-neutral-700",
-        "hover:border-blue-400 hover:shadow-xl",
+        "RepoCard",
+        "group block rounded-xl shadow-sm",
+        "bg-white dark:bg-neutral-900",
         "transition-transform duration-200 ease-out",
-        "h-[14rem] w-[14rem] p-4",
+        "p-4 relative",
+        "flex flex-col min-h-[14rem] min-w-[14rem]",
       ].join(" ")}>
+
+
+      {/* X BUTTON (MOBILE ONLY) */}
+      {isMobile && isActive && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();  // prevent re-opening the card
+            clearHoveredRepo();   // close card
+          }}
+          className="
+            absolute top-1 right-1
+            w-6 h-6 flex items-center justify-center
+            rounded-full bg-neutral-800 text-white 
+            dark:bg-neutral-700 shadow-md 
+            text-xs font-bold z-20
+          "
+        >
+          ×
+        </button>
+      )}
         
       {/* CLICKABLE INFO PANEL */}
-      <InfoPanel ref={infoRef} repo={repo} />
+      <InfoPanel
+        ref={infoRef}
+        repo={repo}
+        isMobile={isMobile}
+        isActive={isActive}
+      />
+
 
       {/* BUTTON ROW */}
       <div className="grid grid-cols-3 items-center justify-between  gap-2">
@@ -97,6 +131,9 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
         <section className={buttonClass}>
           <StarButton repo={repo} />
         </section>
+      </div>
+      <div className="h-auto">
+      
       </div>
     </section>
   );

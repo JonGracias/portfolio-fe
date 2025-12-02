@@ -103,7 +103,7 @@ export function RepoProvider({
   }
 
   useEffect(() => {
-    refreshStars();
+    /* refreshStars(); */
   }, []);
 
   // ---------------------------------------------------------
@@ -136,7 +136,7 @@ export function RepoProvider({
       }
       if (repo.language) set.add(repo.language);
     });
-    return ["All", ...Array.from(set).sort()];
+    return [ ...Array.from(set).sort()];
   }, [repos]);
 
   // ---------------------------------------------------------
