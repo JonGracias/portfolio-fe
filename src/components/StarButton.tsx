@@ -89,7 +89,7 @@ export default function StarButton({ repo }: { repo: Repo }) {
   //
   function triggerFunnyUnstarMessage() {
     const message = (
-      <div className="flex items-center h-full w-full justify-center text-red-300 font-bold">
+      <div className="flex items-center h-[8rem] w-full justify-center text-red-300 font-bold">
         Not allowed!
       </div>
     );

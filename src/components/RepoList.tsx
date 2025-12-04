@@ -7,6 +7,7 @@ import Popup from "./Popup";
 import { useRepoContext } from "@/context/RepoContext";
 import { useUIContext } from "@/context/UIContext";
 import { Repo } from "@/lib/types";
+import LargeRepoCard from "./LargeRepoCard";
 
 interface Position {
   top: number;
@@ -23,6 +24,7 @@ export default function RepoList() {
   const defaultPos: Position = { top: 0, left: 0, height: 0, width: 0, scale: 0, };
   const [hoverPos, setHoverPos] = useState<Position>(defaultPos);
   const [messagePos, setMessagePos] = useState<Position>(defaultPos);
+  const [largerPos, setLargerPos] = useState<Position>(defaultPos);
 
   const { visibleRepos } = useRepoContext();
 
@@ -34,7 +36,9 @@ export default function RepoList() {
     message,
     clearMessage,
     clearHoveredRepo,
-    isMobile
+    isMobile,
+    largerRepo,
+    setLargerRepo
   } = useUIContext();
   
   // Reactive window width
@@ -54,52 +58,72 @@ export default function RepoList() {
   /* -----------------------------------------------------------
    * Popup Position Calculation (Single Source of Truth)
    * ----------------------------------------------------------- */
+  const largeRepoPosition = useCallback(
+    (rect: DOMRect) => {
+      const mainContainerRect =
+        mainContainerRef.current?.getBoundingClientRect();
+
+      if (!mainContainerRect) return defaultPos;
+
+      const mobileTop = mainContainerRect.top;
+      const mobileLeft = mainContainerRect.left;
+      const mobileHeight = mainContainerRect.height;
+      const mobileWidth = mainContainerRect.width;
+      const scale = 1;
+
+      // ---------------------------------------
+      // Larger Position
+      // ---------------------------------------
+      let top = mobileTop;
+      let left = mobileLeft - 16;
+      let height = mobileHeight;
+      let width = mobileWidth;
+
+      return { top, left, height, width, scale };
+    },[scrollContainerRef, windowWidth]);
+
   const computePopupPosition = useCallback(
     (rect: DOMRect) => {
       const scrollContainerRect =
         scrollContainerRef.current?.getBoundingClientRect();
-      const mainContainerRect = 
+      const mainContainerRect =
         mainContainerRef.current?.getBoundingClientRect();
+
       if (!scrollContainerRect || !mainContainerRect) return defaultPos;
 
-      const scrollContainerTop = scrollContainerRect.top;
-      const scrollContainerBottom = scrollContainerRect.bottom;
+      const myRem = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+      );
 
-      const mobileTop = mainContainerRect.top
-      const mobileLeft = mainContainerRect.left
-      const mobileHeight = mainContainerRect.height
-      const mobileWidth = mainContainerRect.width
-      
-      // Desktop defaults
-      let scale = 1.1;
-      let height = parseFloat(getComputedStyle(document.documentElement).fontSize) * 14; ;
-      let width = parseFloat(getComputedStyle(document.documentElement).fontSize) * 14; ;
-      let left = rect.left - 15;
-      let top = rect.top;
-      
-      
-      // Clamp top inside container
-      const minTop = scrollContainerTop;
+      const scrollTop = scrollContainerRect.top;
+      const scrollBottom = scrollContainerRect.bottom;
+
+      // ---------------------------------------
+      // Desktop Defaults
+      // ---------------------------------------
+      let scale = 1;
+      let height = myRem * 16;
+      let width = myRem * 16;
+
+      let left = rect.left - 32;
+      let top = rect.top - 16;
+
+      // ---------------------------------------
+      // Vertical Clamp
+      // ---------------------------------------
+      const minTop = scrollTop;
       if (top < minTop) top = minTop;
-      
-      // Clamp bottom
-      const maxBottom = scrollContainerBottom + 35;
+
+      const maxBottom = scrollBottom + 20;
       if (top + height > maxBottom) {
-        top = maxBottom - ( height );
+        top = maxBottom - height;
       }
-      
-      // scale is what changes
-      if (isMobile) {
-        scale = 1;
-        top = mobileTop;
-        left = mobileLeft;
-        height = mobileHeight;
-        width = mobileWidth;
-      }
+
       return { top, left, height, width, scale };
     },
     [scrollContainerRef, windowWidth]
   );
+
 
 
   /* -----------------------------------------------------------
@@ -107,13 +131,19 @@ export default function RepoList() {
    * ----------------------------------------------------------- */
   const handleMouseEnter = useCallback(
     (element: HTMLDivElement, repo: Repo) => {
+      if (isMobile) {
+        setLargerRepo(repo);
+      }
       setHoveredRepo(repo);
 
+
       const rect = element.getBoundingClientRect();
+      const lpos = largeRepoPosition(rect);
       const pos = computePopupPosition(rect);
 
       setHoverPos(pos);
       setMessagePos({ ...pos });
+      setLargerPos({ ...lpos });
     },
     [setHoveredRepo, computePopupPosition]
   );
@@ -162,14 +192,22 @@ export default function RepoList() {
           w-[19.1rem] md:w-[32rem] lg:w-[50rem] xl:w-[65rem]
           [height:calc(100dvh-18rem)]
           min-h-[18rem]
-          max-h-[90rem]"> 
-      <div onMouseLeave={handleMouseLeave}>
-        {/* Mobile Popup */}
-        {isMobile && hoveredRepo && (
-          <Popup object={<RepoCard repo={hoveredRepo} />} position={hoverPos} />
+          max-h-[90rem]">
+
+      <div className="Large_Card absolute inset-0">
+        {/* Large Repo Popup */}
+        {largerRepo && (
+          <LargeRepoCard repo={largerRepo} position={largerPos}/>
         )}
+        {/* Mobile Popup */}
+        {isMobile && largerRepo && (
+          <LargeRepoCard repo={largerRepo} position={largerPos}/>
+        )}
+      </div>
+
+      <div className="Popup_card" onMouseLeave={handleMouseLeave}>
         {/* Hover Popup */}
-        {!scrolling && hoveredRepo && (
+        {!scrolling && !largerRepo && hoveredRepo && (
           <div className="">
             <Popup object={<RepoCard repo={hoveredRepo} />} position={hoverPos} />
           </div>
@@ -178,6 +216,7 @@ export default function RepoList() {
         {message && hoveredRepo && message.repoName === hoveredRepo.name && (
           <Popup object = {message.content} position={messagePos}/>
         )}
+
       </div>
       {/* Filters */}
         <RepoFilters />

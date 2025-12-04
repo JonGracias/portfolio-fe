@@ -8,16 +8,38 @@ import GitHubButton from "./GitHubButton";
 import { useUIContext } from "@/context/UIContext";
 import InfoPanel, { RepoCardHandle } from "./InfoPanel";
 
-export default memo(function RepoCard({ repo }: { repo: Repo }) {
+interface Position {
+  top: number;
+  left: number;
+  height: number;
+  width: number;
+  scale: number;
+}
+
+interface RepoCardProps {
+  repo: Repo;
+  position?: Partial<Position>;
+}
+
+const DEFAULT_POS: Position = {
+  top: 0,
+  left: 0,
+  height: 0,
+  width: 0,
+  scale: 1,
+};
+
+export default memo(function RepoCard({
+  repo,
+  position = {},
+}: RepoCardProps) {
+  const finalPos: Position = { ...DEFAULT_POS, ...position };
   const infoRef = useRef<RepoCardHandle>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const {
     isMobile,
     hoveredRepo,
-    setHoveredRepo,
-    clearHoveredRepo,
   } = useUIContext();
-
   const isActive = hoveredRepo?.name === repo.name;
 
   function handleEnter() {
@@ -63,12 +85,13 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
   }, [isMobile]);
 
   const buttonClass = [
-    "h-[3.5rem] w-[3.5rem]",
+    "h-[3.5rem] w-full",
     "flex items-center justify-center",
     "rounded-lg m-",
     "border border-white dark:border-neutral-900",
     "hover:border-blue-400 dark:hover:border-orange-400",
   ].join(" ");
+
 
   //
   // ────────────────────────────────────────────────────────────────
@@ -88,39 +111,24 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
         "p-4 relative",
         "w-full",
         "flex flex-col min-h-[14rem] min-w-[14rem]",
-      ].join(" ")}>
-
-
-      {/* X BUTTON (MOBILE ONLY) */}
-      {isMobile && isActive && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();  // prevent re-opening the card
-            clearHoveredRepo();   // close card
-          }}
-          className="
-            absolute top-1 right-1
-            w-6 h-6 flex items-center justify-center
-            rounded-full bg-neutral-800 text-white 
-            dark:bg-neutral-700 shadow-md 
-            text-xs font-bold z-20
-          "
-        >
-          ×
-        </button>
-      )}
+      ].join(" ")}
+      style={{
+        top: finalPos.top,
+        left: finalPos.left,
+        width: finalPos.width,
+        height: finalPos.height,
+      }}>
         
       {/* CLICKABLE INFO PANEL */}
       <InfoPanel
         ref={infoRef}
         repo={repo}
-        isMobile={isMobile}
         isActive={isActive}
+        isLarge={false}   
       />
 
-
       {/* BUTTON ROW */}
-      <div className="grid grid-cols-3 items-center justify-between  gap-2">
+      <div className="grid grid-cols-3 items-center justify-center mt-2 gap-2">
         <section className={buttonClass}>
           <GitHubButton repo={repo} />
         </section>
@@ -132,9 +140,6 @@ export default memo(function RepoCard({ repo }: { repo: Repo }) {
         <section className={buttonClass}>
           <StarButton repo={repo} />
         </section>
-      </div>
-      <div className="h-auto">
-      
       </div>
     </section>
   );

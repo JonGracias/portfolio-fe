@@ -4,6 +4,7 @@ import { memo } from "react";
 import { useRepoContext } from "@/context/RepoContext";
 import { Repo } from "@/lib/types";
 import { useUIContext } from "@/context/UIContext";
+import LanguageEntries from "./LanguageEntries";
 import LangIcon from "./LangIcon";
 
 export default function LanguageDisplay({ repo }: { repo: Repo }) {
@@ -27,44 +28,14 @@ export default function LanguageDisplay({ repo }: { repo: Repo }) {
      CLICK → OPEN OVERLAY OF LANGS
   ───────────────────────────────────────────────── */
   function handleClick() {
-    const keys = Object.keys(langMap);
-
-    if (keys.length === 0) return;
-
-    const entries = keys.map((lang) => {
-      const bytes = langMap[lang];
-
-      return (
-        <button
-          key={lang}
-          className="
-            flex flex-col items-center justify-center
-            border border-white dark:border-neutral-900
-            hover:border-blue-400 dark:hover:border-orange-400
-            rounded-md text-sm h-[3.3rem] w-[3.3rem]
-          "
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            clearHoveredRepo();
-            setFilters((f) => ({ ...f, language: lang }));
-          }}
-        >
-          <LangIcon lang={lang} percentText={percent(bytes)} />
-        </button>
-      );
-    });
-
-    const message = (
-      <section>
-        {/* Languages Popup */}
-        <div className="w-[8rem] grid grid-cols-2 gap-10">
-          {entries}
-        </div>
-      </section>
+    setMessage(
+      repo.name,
+      <LanguageEntries
+        langMap={langMap}
+        clearHoveredRepo={clearHoveredRepo}
+        setFilters={setFilters}
+      />
     );
-
-    setMessage(repo.name, message);
   }
 
   /* ────────────────────────────────────────────────

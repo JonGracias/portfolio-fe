@@ -22,6 +22,9 @@ interface UIContextType {
   hoveredRepo: Repo | null;
   setHoveredRepo: (repo: Repo | null) => void;
 
+  largerRepo: Repo | null;
+  setLargerRepo: (repo: Repo | null) => void;
+
   message: RepoMessage | null;
   setMessage: (repoName: string, content: ReactNode) => void;
 
@@ -30,7 +33,9 @@ interface UIContextType {
 
   clearMessage: () => void;
   clearHoveredRepo: () => void;
-  isMobile: boolean;
+  clearLargerRepo: () => void;
+  clearAllRepos: () => void;
+  isMobile: boolean;  
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -46,8 +51,8 @@ interface UIProviderProps {
  * ------------------------------------------------------- */
 export function UIProvider({ children, isMobile }: UIProviderProps) {
   const [hoveredRepo, _setHoveredRepo] = useState<Repo | null>(null);
+  const [largerRepo, _setLargerRepo] = useState<Repo | null>(null);
   
-
   // The global popup message
   const [message, _setMessage] = useState<RepoMessage | null>(null);
 
@@ -55,7 +60,16 @@ export function UIProvider({ children, isMobile }: UIProviderProps) {
   const [scrolling, setScrolling] = useState<boolean>(false);
 
 
-
+  /* -----------------------------------------------------
+   * Larger Repos
+   * ----------------------------------------------------- */
+  const setLargerRepo = useCallback((repo: Repo | null) => {
+    clearHoveredRepo();
+    _setLargerRepo(repo);
+  }, []);
+  const clearLargerRepo = useCallback(() => {
+    _setLargerRepo(null);
+  }, []);
   /* -----------------------------------------------------
    * Message Controls
    * ----------------------------------------------------- */
@@ -88,6 +102,12 @@ export function UIProvider({ children, isMobile }: UIProviderProps) {
     _setHoveredRepo(null);
   }, []);
 
+
+  const clearAllRepos = useCallback(() => {
+    clearHoveredRepo();
+    clearLargerRepo();
+  }, []);
+
   /* -----------------------------------------------------
    * Provider Value
    * ----------------------------------------------------- */
@@ -97,14 +117,19 @@ export function UIProvider({ children, isMobile }: UIProviderProps) {
         hoveredRepo,
         setHoveredRepo,
 
+        largerRepo,
+        setLargerRepo,
+        
         message,
         setMessage,
-
+        
         scrolling,
         setScrolling,
-
+        
         clearMessage,
         clearHoveredRepo,
+        clearLargerRepo,
+        clearAllRepos,
         
         isMobile
       }}

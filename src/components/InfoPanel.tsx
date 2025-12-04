@@ -8,11 +8,13 @@ import {
   memo,
 } from "react";
 import { Repo } from "@/lib/types";
+import { useUIContext } from "@/context/UIContext";
 
 interface Props {
   repo: Repo;
-  isMobile: boolean;
+  
   isActive: boolean;
+  isLarge?: boolean
 }
 
 export interface RepoCardHandle {
@@ -21,11 +23,15 @@ export interface RepoCardHandle {
   getScrollElement: () => HTMLParagraphElement | null;
 }
 
+
 const InfoPanel = forwardRef<RepoCardHandle, Props>(
-  ({ repo, isMobile, isActive }, ref) => {
+  ({ repo,  isActive, isLarge=false }, ref) => {
     const descRef = useRef<HTMLParagraphElement>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
+    const {
+      setLargerRepo,
+    } = useUIContext();
+    
     // -----------------------------------------------------
     // STOP AUTO SCROLL
     // -----------------------------------------------------
@@ -79,26 +85,22 @@ const InfoPanel = forwardRef<RepoCardHandle, Props>(
       day: "numeric",
     });
 
-    function handleProjectClick(repo: Repo) {
-      if (repo.launchUrl) {
-        window.open(repo.launchUrl, "_blank");
-        return;
-      }
-      window.location.href = "/support";
+    function handleClick(repo: Repo) {
+      console.log("Pushed button")
+      setLargerRepo(repo)
     }
 
-    const large = isMobile && isActive;
+    
+    const large = isLarge && isActive;
 
     return (
       <button
-        onClick={() => handleProjectClick(repo)}
+        onClick={()=>handleClick(repo)}
         className={[
           "group flex flex-col text-left cursor-pointer select-none",
-          "rounded-lg border border-white dark:border-neutral-900",
-          "overflow-hidden w-[13rem]",
+          "overflow-hidden",
           "bg-white dark:bg-neutral-900",
-          "hover:border-blue-400 dark:hover:border-orange-400",
-          large ? "p-4 gap-3 h-full w-full" : "p-3 pb-2 pt-1",
+          large ? "p-4 gap-3 h-full w-full" : "p-3 pb-2 pt-1 w-[13rem]",
         ].join(" ")}
       >
         {/* Title */}

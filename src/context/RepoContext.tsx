@@ -19,16 +19,6 @@ interface Filters {
 
 interface RepoContextType {
   repos: Repo[];
-
-  // Stars
-  starred: Record<string, boolean>;
-  setStarred: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  refreshStars: () => Promise<void>;
-
-  // Star counts
-  count: Record<string, number>;
-  setCount: React.Dispatch<React.SetStateAction<Record<string, number>>>;
-
   // Filters
   filters: Filters;
   setFilters: React.Dispatch<React.SetStateAction<Filters>>;
@@ -53,70 +43,6 @@ export function RepoProvider({
   repos: Repo[];
   children: ReactNode;
 }) {
-  // ---------------------------------------------------------
-  // STARRED STATE (LOCAL CACHE + REMOTE SYNC)
-  // ---------------------------------------------------------
-
-  const [starred, setStarred] = useState<Record<string, boolean>>({});
-
-  // Load user star cache on mount
-  useEffect(() => {
-    const cached = localStorage.getItem("starredCache");
-    if (cached) {
-      try {
-        setStarred(JSON.parse(cached));
-      } catch {}
-    }
-  }, []);
-
-  // Persist star cache
-  useEffect(() => {
-    localStorage.setItem("starredCache", JSON.stringify(starred));
-  }, [starred]);
-
-  // Refresh from GitHub authenticated star list
-  async function refreshStars() {
-    try {
-      const res = await fetch("/api/github/starred-list", { cache: "no-store" });
-      const data = await res.json();
-
-      if (data.authed && Array.isArray(data.repos)) {
-        // Remote truth: build a fresh map of GitHub-starred repos
-        const remoteNames = new Set<string>(
-          data.repos
-            .map((r: any) => r?.name)
-            .filter((name: string | undefined): name is string => !!name)
-        );
-
-        setStarred(() => {
-          const next: Record<string, boolean> = {};
-          remoteNames.forEach((name) => {
-            next[name] = true;
-          });
-          return next;
-        });
-      }
-      // If not authed, we leave local starred as-is (pure local favorites).
-    } catch (err) {
-      console.error("refreshStars failed:", err);
-    }
-  }
-
-  useEffect(() => {
-    /* refreshStars(); */
-  }, []);
-
-  // ---------------------------------------------------------
-  // STAR COUNTS (STATIC PER BUILD + CLIENT UPDATES)
-  // ---------------------------------------------------------
-  const [count, setCount] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    const map: Record<string, number> = {};
-    repos.forEach((r) => (map[r.name] = r.stargazers_count));
-    setCount(map);
-  }, [repos]);
-
   // ---------------------------------------------------------
   // FILTERS
   // ---------------------------------------------------------
@@ -199,13 +125,6 @@ export function RepoProvider({
     <RepoContext.Provider
       value={{
         repos,
-
-        starred,
-        setStarred,
-        refreshStars,
-
-        count,
-        setCount,
 
         filters,
         setFilters,
