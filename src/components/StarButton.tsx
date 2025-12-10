@@ -3,89 +3,51 @@
 import { Repo } from "@/lib/repos";
 import { useStars } from "@/context/StarContext";
 import { useUIContext } from "@/context/UIContext";
-import { useCallback } from "react";
 
 export default function StarButton({ repo }: { repo: Repo }) {
-  const { starred, setStarred, count, setCount, starRepo } = useStars();
+  const {
+    starred,
+    count,
+    starRepo,
+
+    isLogin,
+    isLogged,
+    isStarring,
+  } = useStars();
 
   const { setMessage, clearMessage } = useUIContext();
-
-  const repoStarred = starred[repo.name] ?? false;
-  const starCount = count[repo.name] ?? 0;
-
-  //
-  // -------------------------------------------------------------------
-  // Helpers
-  // -------------------------------------------------------------------
-  //
-  function setStarValue(v: boolean) {
-    setStarred((prev) => ({ ...prev, [repo.name]: v }));
-  }
-
-  function setCountValue(v: number) {
-    setCount((prev) => ({ ...prev, [repo.name]: v }));
-  }
+  const { hoveredRepo } = useUIContext();
+  const isActive = hoveredRepo?.name === repo.name;
+  const repoKey = repo.name;
+  const isStarred = starred[repoKey] === true;
+  const starCount = count[repoKey] ?? repo.stargazers_count;
 
   //
-  // -------------------------------------------------------------------
-  // Star handler
-  // -------------------------------------------------------------------
+  // -------------------------------------------------------------
+  // BUTTON LABEL LOGIC
+  // -------------------------------------------------------------
+  //
+  let label = "";
+  if (isLogin) label = "Logging in…";
+  else if (isLogged) label = "Logged in!";
+  else if (isStarring) label = "Starring…";
+
+  //
+  // -------------------------------------------------------------
+  // HANDLE STAR CLICK
+  // -------------------------------------------------------------
   //
   async function handleStar() {
-    // local cached values
-    const oldValue = repoStarred;
-    const oldCount = starCount;
+    if (isStarring || isLogin) return;
 
-    // ================
-    // 1. Optimistic UI
-    // ================
-    setStarValue(true);
-    setCountValue(oldCount + 1);
-
-    try {
-      // ================
-      // 2. Background API
-      // ================
-      const res = await fetch("/api/github/star", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ owner: repo.owner, repo: repo.name })
-      });
-
-      // redirect to login
-      if (res.status === 401) {
-        window.location.href = "/api/github/login";
-        return;
-      }
-
-      const data = await res.json();
-
-      // ================
-      // 3. Server truth
-      // ================
-      if (data.ok) {
-        setStarValue(true);
-        setCountValue(data.count); // canonical GitHub count
-      } else {
-        throw new Error("GitHub error");
-      }
-
-    } catch (err) {
-      console.error("Star error:", err);
-
-      // ================
-      // 4. Revert on fail
-      // ================
-      setStarValue(oldValue);
-      setCountValue(oldCount);
-    }
+    // Ask StarContext to star the repo
+    await starRepo(repo.owner, repo.name);
   }
 
-
   //
-  // -------------------------------------------------------------------
-  // Message for "Not Allowed!" joke
-  // -------------------------------------------------------------------
+  // -------------------------------------------------------------
+  // FUNNY UNSTAR MESSAGE
+  // -------------------------------------------------------------
   //
   function triggerFunnyUnstarMessage() {
     const message = (
@@ -93,21 +55,18 @@ export default function StarButton({ repo }: { repo: Repo }) {
         Not allowed!
       </div>
     );
-
     setMessage(repo.name, message);
   }
 
   //
-  // -------------------------------------------------------------------
-  // Unstar Confirmation Popup
-  // -------------------------------------------------------------------
+  // -------------------------------------------------------------
+  // UNSTAR CONFIRMATION POPUP
+  // -------------------------------------------------------------
   //
   function handleUnstarClick() {
     const dialog = (
       <section className="mt-6 w-[13rem]">
-        <p className="mb-2 text-center">
-          Are you sure you want to unstar this repo?
-        </p>
+        <p className="mb-2 text-center">Are you sure you want to unstar this repo?</p>
 
         <div className="flex justify-center gap-4">
           <button
@@ -133,20 +92,32 @@ export default function StarButton({ repo }: { repo: Repo }) {
         </div>
       </section>
     );
-
     setMessage(repo.name, dialog);
   }
 
   //
-  // -------------------------------------------------------------------
-  // UI
-  // -------------------------------------------------------------------
+  // -------------------------------------------------------------
+  // DISABLED STATE
+  // -------------------------------------------------------------
   //
-  const starButtonClass = "h-[4rem] w-[4rem] flex items-center justify-center";
+  const disabled = isLogin || isStarring;
 
+  //
+  // -------------------------------------------------------------
+  // STYLES
+  // -------------------------------------------------------------
+  //
+  const starButtonClass =
+    "h-[4rem] w-[4rem] flex flex-col items-center justify-center text-center";
+
+  //
+  // -------------------------------------------------------------
+  // RENDER
+  // -------------------------------------------------------------
+  //
   return (
-    <div className="text-m">
-      {!repoStarred ? (
+    <div className="text-m select-none">
+      {!isStarred ? (
         <button
           onClick={(e) => {
             e.preventDefault();
@@ -154,8 +125,10 @@ export default function StarButton({ repo }: { repo: Repo }) {
             handleStar();
           }}
           className={starButtonClass}
+          disabled={disabled}
         >
-          {starCount} ☆
+          <div className="text-lg">{starCount} ☆</div>
+          {label && <div className="text-xs opacity-70">{label}</div>}
         </button>
       ) : (
         <button
@@ -165,8 +138,10 @@ export default function StarButton({ repo }: { repo: Repo }) {
             handleUnstarClick();
           }}
           className={starButtonClass}
+          disabled={disabled}
         >
-          {starCount} ⭐
+          <div className="text-lg">{starCount} ⭐</div>
+          {label && isActive && <div className="text-xs opacity-70">{label}</div>}
         </button>
       )}
     </div>

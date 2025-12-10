@@ -8,12 +8,16 @@ import {
     ReactNode,
     useCallback,
 } from "react";
-import { useRepoContext } from "@/context/RepoContext";
 import { Repo } from "@/lib/repos";
+import { useRepoContext } from "@/context/RepoContext";
 
 interface StarContextType {
     starred: Record<string, boolean>;
     count: Record<string, number>;
+
+    isLogin: boolean;     // "Logging in…"
+    isLogged: boolean;    // "Logged in!"
+    isStarring: boolean;  // "Starring…"
 
     setStarred: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
     setCount: React.Dispatch<React.SetStateAction<Record<string, number>>>;
@@ -26,132 +30,180 @@ const StarContext = createContext<StarContextType | undefined>(undefined);
 
 export function StarProvider({ children }: { children: ReactNode }) {
     const { repos } = useRepoContext();
+
     //
-    // STARRED STATE (LOCAL CACHE)
+    // ----------------------------------------------------
+    // State
+    // ----------------------------------------------------
     //
     const [starred, setStarred] = useState<Record<string, boolean>>({});
+    const [count, setCount] = useState<Record<string, number>>({});
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE || "";
 
+    // FLAGS
+    const [isLogin, setIsLogin] = useState(false);
+    const [isLogged, setIsLogged] = useState(false);
+    const [isStarring, setIsStarring] = useState(false);
+
+
+    //
+    // ----------------------------------------------------
+    // Initialize counts from repository list
+    // ----------------------------------------------------
+    //
     useEffect(() => {
-    try {
-        const saved = JSON.parse(localStorage.getItem("userStarMap") || "{}");
-        setStarred(saved);
-    } catch {}
+        const initial: Record<string, number> = {};
+        repos.forEach((r) => {
+            initial[r.name] = r.stargazers_count;
+        });
+        setCount(initial);
+    }, [repos]);
+
+
+    //
+    // ----------------------------------------------------
+    // Load previous user star map from localStorage
+    // ----------------------------------------------------
+    //
+    useEffect(() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem("userStarMap") || "{}");
+            setStarred(saved);
+        } catch {}
     }, []);
 
 
-    useEffect(() => {
-        const cached = localStorage.getItem("starredCache");
-            if (cached) {
-            try {
-                setStarred(JSON.parse(cached));
-            } catch {}
-        }
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem("starredCache", JSON.stringify(starred));
-    }, [starred]);
-
     //
-    // STAR COUNT CACHE
-    //
-    const [count, setCount] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    repos.forEach(repo => {
-        initial[repo.name] = repo.stargazers_count; 
-    });
-    return initial;
-    });
-
-
-    //
-    // Fetch full GitHub starred list after login
+    // ----------------------------------------------------
+    // Refresh starred list AFTER LOGIN
+    // (one clean version – no duplicate refreshUserStars)
+    // ----------------------------------------------------
     //
     const refreshStars = useCallback(async () => {
         try {
-        const res = await fetch("/api/github/starred-list", { cache: "no-store" });
-        const data = await res.json();
-
-        if (data.authed && Array.isArray(data.repos)) {
-            const next: Record<string, boolean> = {};
-            data.repos.forEach((r: Repo) => {
-            if (r?.name) next[r.name] = true;
-            });
-            setStarred(next);
-        }
-        } catch (err) {
-        console.error("refreshStars failed:", err);
-        }
-    }, []);
-
-    const refreshUserStars = useCallback(async () => {
-        try {
-            const res = await fetch("/api/github/starred-list", {
+            const res = await fetch(`${apiBase}/api/github/starred-list`, {
                 cache: "no-store",
+                credentials: "include",
             });
-
-            if (!res.ok) return;
 
             const data = await res.json();
             if (!data.authed || !Array.isArray(data.repos)) return;
 
-            const userStarMap: Record<string, boolean> = {};
-
+            const next: Record<string, boolean> = {};
             data.repos.forEach((repo: Repo) => {
-            if (repo?.name) userStarMap[repo.name] = true;
+                if (repo?.name) next[repo.name] = true;
             });
 
-            // Save to state
-            setStarred(userStarMap);
-
-            // Save to localStorage
-            localStorage.setItem("userStarMap", JSON.stringify(userStarMap));
-            localStorage.setItem("userStarSyncDone", "yes");
-
+            setStarred(next);
+            localStorage.setItem("userStarMap", JSON.stringify(next));
         } catch (err) {
-            console.error("Failed loading user starred list:", err);
+            console.error("refreshStars failed:", err);
         }
     }, []);
 
+
+    //
+    // ----------------------------------------------------
+    // Detect login return (gh_token cookie set by callback)
+    // ----------------------------------------------------
+    //
     useEffect(() => {
-        refreshUserStars();
-    }, [refreshUserStars]);
+        async function checkLogin() {
+            try {
+                const res = await fetch(`${apiBase}/api/github/is-logged`, {
+                    credentials: "include",
+                    cache: "no-store",
+                });
+
+                const data = await res.json();
+
+                if (data.loggedIn) {
+                    setIsLogin(false);
+                    setIsLogged(true);
+
+                    // Pull the new starred list from the server
+                    await refreshStars();
+
+                    // Flash UX message
+                    const t = setTimeout(() => setIsLogged(false), 2000);
+                    return () => clearTimeout(t);
+                }
+            } catch (err) {
+                console.error("Login check failed:", err);
+            }
+        }
+
+        checkLogin();
+    }, [refreshStars]);
 
 
 
     //
-    // Star a repo — single API call (used by StarButton)
+    // ----------------------------------------------------
+    // STAR a repo
+    // ----------------------------------------------------
     //
     const starRepo = useCallback(async (owner: string, repo: string) => {
-        const res = await fetch("/api/github/star", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ owner, repo }),
-        });
+        const starUrl = `${apiBase}/api/github/star`;
+        const loginUrl = `${apiBase}/api/github/login`;
 
-        if (res.status === 401) {
-        window.location.href = "/api/github/login";
-        return null;
+        setIsStarring(true);
+
+        try {
+            const res = await fetch(starUrl, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ owner, repo }),
+            });
+
+            if (res.status === 401) {
+                setIsLogin(true);        // show “Logging in…”
+                window.location.href = loginUrl;
+                return null;             // DO NOT RETRY automatically
+            }
+
+            const data = await res.json();
+            if (!data?.ok) return null;
+
+            // Update UI state
+            setStarred((prev) => ({ ...prev, [repo]: true }));
+            setCount((prev) => ({
+                ...prev,
+                [repo]: data.count ?? prev[repo],
+            }));
+
+            return data.count ?? null;
+
+        } catch (err) {
+            console.error("Star error:", err);
+            return null;
+        } finally {
+            setIsStarring(false);
         }
-
-        const data = await res.json();
-        if (data.ok) return data.count;
-
-        return null;
     }, []);
 
+
+    //
+    // ----------------------------------------------------
+    // Provider
+    // ----------------------------------------------------
+    //
     return (
         <StarContext.Provider
-        value={{
-            starred,
-            count,
-            setStarred,
-            setCount,
-            refreshStars,
-            starRepo,
-        }}
+            value={{
+                starred,
+                count,
+                setStarred,
+                setCount,
+                refreshStars,
+                starRepo,
+                isLogin,
+                isLogged,
+                isStarring,
+            }}
         >
-        {children}
+            {children}
         </StarContext.Provider>
     );
 }
