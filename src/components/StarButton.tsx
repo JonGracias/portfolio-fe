@@ -17,9 +17,9 @@ export default function StarButton({ repo }: { repo: Repo }) {
 
   const { setMessage, clearMessage } = useUIContext();
   const { hoveredRepo } = useUIContext();
-  const isActive = hoveredRepo?.name === repo.name;
   const repoKey = repo.name;
-  const isStarred = starred[repoKey] === true;
+  const isActive = hoveredRepo?.name === repoKey;
+  const isStarred = starred[repoKey];
   const starCount = count[repoKey] ?? repo.stargazers_count;
 
   //
@@ -128,7 +128,7 @@ export default function StarButton({ repo }: { repo: Repo }) {
           disabled={disabled}
         >
           <div className="text-lg">{starCount} ☆</div>
-          {label && <div className="text-xs opacity-70">{label}</div>}
+          {label && isActive && <div className="text-xs opacity-70">{label}</div>}
         </button>
       ) : (
         <button

@@ -9,6 +9,7 @@ import {
     useCallback,
 } from "react";
 import { Repo } from "@/lib/repos";
+import { getCookie } from "@/utils/getCookie";
 import { useRepoContext } from "@/context/RepoContext";
 
 interface StarContextType {
@@ -80,26 +81,38 @@ export function StarProvider({ children }: { children: ReactNode }) {
     // ----------------------------------------------------
     //
     const refreshStars = useCallback(async () => {
-        try {
-            const res = await fetch(`${apiBase}/api/github/starred-list`, {
-                cache: "no-store",
-                credentials: "include",
-            });
+    try {
+        // Fetch the starred repos list for the authenticated user
+        const res = await fetch(`${apiBase}/api/github/starred-list`, {
+        cache: "no-store",
+        credentials: "include",
+        });
 
-            const data = await res.json();
-            if (!data.authed || !Array.isArray(data.repos)) return;
+        const data = await res.json();
 
-            const next: Record<string, boolean> = {};
-            data.repos.forEach((repo: Repo) => {
-                if (repo?.name) next[repo.name] = true;
-            });
+        // Return if the response is not authenticated or repos are not in an array
+        if (!data.authed || !Array.isArray(data.repos)) return;
 
-            setStarred(next);
-            localStorage.setItem("userStarMap", JSON.stringify(next));
-        } catch (err) {
-            console.error("refreshStars failed:", err);
-        }
+        // Create a list of starred repository names
+        const starredRepos = new Set(data.repos.map((repo: Repo) => repo.name));
+
+        // Create the next state based on whether the repo is starred
+        const next: Record<string, boolean> = {};
+        data.repos.forEach((repo: Repo) => {
+        // If the repo is starred, set it in the next state as true
+        next[repo.name] = starredRepos.has(repo.name);
+        });
+
+        // Update the state with the starred repos
+        setStarred(next);
+
+        // Store the starred repos in localStorage for persistence
+        localStorage.setItem("userStarMap", JSON.stringify(next));
+    } catch (err) {
+        console.error("refreshStars failed:", err);
+    }
     }, []);
+
 
 
     //
@@ -110,31 +123,25 @@ export function StarProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         async function checkLogin() {
             try {
-                const res = await fetch(`${apiBase}/api/github/is-logged`, {
-                    credentials: "include",
-                    cache: "no-store",
-                });
+            const ghToken = getCookie('gh_token'); // Access the cookie
 
-                const data = await res.json();
+            if (ghToken) {
+                setIsLogged(true); // User is logged in if token exists
+            } else {
+                setIsLogged(false); // If no token, user is not logged in
+            }
 
-                if (data.loggedIn) {
-                    setIsLogin(false);
-                    setIsLogged(true);
-
-                    // Pull the new starred list from the server
-                    await refreshStars();
-
-                    // Flash UX message
-                    const t = setTimeout(() => setIsLogged(false), 2000);
-                    return () => clearTimeout(t);
-                }
+            // Flash UX message
+            const t = setTimeout(() => setIsLogged(false), 2000);
+            return () => clearTimeout(t);
             } catch (err) {
-                console.error("Login check failed:", err);
+            console.error("Login check failed:", err);
             }
         }
-
         checkLogin();
+        refreshStars(); 
     }, [refreshStars]);
+
 
 
 

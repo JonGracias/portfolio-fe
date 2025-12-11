@@ -7,7 +7,6 @@ export async function fetchRepos() {
 
   const res = await fetch(`${apiBase}/api/github/repos`);
   const data = await res.json();
-
   // ----------------------------------------------------------
   //  Fetch languages + README for each repo in parallel
   // ----------------------------------------------------------
