@@ -157,7 +157,6 @@ export default function RepoList() {
       setScrolling(true);
       clearHoveredRepo();
       clearMessage();
-
       clearTimeout(timeout);
       timeout = setTimeout(() => setScrolling(false), 150);
     };
@@ -181,7 +180,7 @@ export default function RepoList() {
           bg-gray-100 dark:bg-gray-800
           border border-gray-300 dark:border-gray-700
           w-[19.1rem] md:w-[32rem] lg:w-[45rem] xl:w-[50rem]
-          [height:calc(100dvh-18rem)]
+          [height:calc(100dvh-14rem)]
           min-h-[18rem]
           max-h-[90rem]">
 
@@ -200,12 +199,20 @@ export default function RepoList() {
         {/* Hover Popup */}
         {!scrolling && !largerRepo && hoveredRepo && (
           <div className="">
-            <Popup object={<RepoCard repo={hoveredRepo} />} position={hoverPos} />
+            <Popup
+              key={hoveredRepo.name}
+              object={<RepoCard repo={hoveredRepo} />}
+              position={hoverPos}
+            />
           </div>
         )}
         {/* Message */}
         {message && hoveredRepo && message.repoName === hoveredRepo.name && (
-          <Popup object = {message.content} position={messagePos}/>
+          <Popup 
+            key={message.repoName}
+            object = {message.content} 
+            position={messagePos}
+          />
         )}
 
       </div>
@@ -224,7 +231,7 @@ export default function RepoList() {
         ref={gridContainerRef}
           className="
             grid gap-5
-            grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4
+            grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 
             auto-rows-[14rem]
             [grid-template-columns:repeat(auto-fill,_14rem)]
             isolate

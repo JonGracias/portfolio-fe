@@ -36,7 +36,7 @@ export const metadata = {
 export default async function Page() {
   return (
     <ContextProviderTree>
-      <main className="relative flex flex-col min-h-screen overflow-hidden">
+      <main className="relative flex flex-col h-screen overflow-hidden">
         {/* Header / Intro */}
         <section
           aria-labelledby="portfolio-heading"
@@ -58,10 +58,10 @@ export default async function Page() {
             Jonathan Gracias – Portfolio
           </h1>
 
-          <p className="max-w-2xl text-gray-700 dark:text-gray-300 md:text-left">
+ {/*          <p className="max-w-2xl text-gray-700 dark:text-gray-300 md:text-left">
             A collection of my projects spanning backend automation, web development,
             and creative technology. Built with Next.js and deployed on Azure.
-          </p>
+          </p> */}
         </section>
 
         {/* Repo Grid */}
@@ -73,12 +73,12 @@ export default async function Page() {
             mb-5
           "
         >
-          <h2 className="sr-only">Projects</h2>
+        <h2 className="sr-only">Projects</h2>
           <RepoList />
         </section>
 
         {/* Footer */}
-        <footer className="w-full text-center text-sm text-gray-500 mt-5">
+        <footer className="w-full text-center text-sm text-gray-500 my-5">
           © {new Date().getFullYear()} Jonathan Gracias — Built with Next.js + Tailwind + Azure
         </footer>
       </main>

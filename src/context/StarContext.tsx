@@ -18,7 +18,6 @@ interface StarContextType {
     count: Record<string, number>;
 
     isLogin: boolean;     // "Logging in…"
-    isLogged: boolean;    // "Logged in!"
     isStarring: boolean;  // "Starring…"
 
     setStarred: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
@@ -132,8 +131,7 @@ export function StarProvider({ children }: { children: ReactNode }) {
     // ----------------------------------------------------
     //
     const starRepo = useCallback(async (owner: string, repo: string) => {
-        const starUrl = `${apiBase}/api/github/star`;
-        const loginUrl = `${apiBase}/api/github/login`;
+        const starUrl = `/api/github/star`;
 
         setIsStarring(true);
 
@@ -144,12 +142,6 @@ export function StarProvider({ children }: { children: ReactNode }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ owner, repo }),
             });
-
-            if (res.status === 401) {
-                setIsLogin(true);        // show “Logging in…”
-                window.location.href = loginUrl;
-                return null;             // DO NOT RETRY automatically
-            }
 
             const data = await res.json();
             if (!data?.ok) return null;
@@ -187,7 +179,6 @@ export function StarProvider({ children }: { children: ReactNode }) {
                 refreshStars,
                 starRepo,
                 isLogin,
-                isLogged,
                 isStarring,
             }}
         >

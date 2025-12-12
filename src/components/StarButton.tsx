@@ -3,24 +3,25 @@
 import { Repo } from "@/lib/repos";
 import { useStars } from "@/context/StarContext";
 import { useUIContext } from "@/context/UIContext";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthProvider";
 
 export default function StarButton({ repo }: { repo: Repo }) {
   const {
     starred,
     count,
     starRepo,
-
     isLogin,
-    isLogged,
     isStarring,
   } = useStars();
 
-  const { setMessage, clearMessage } = useUIContext();
-  const { hoveredRepo } = useUIContext();
+  const { hoveredRepo, setMessage, clearMessage  } = useUIContext();
+  const { isLogged  } = useAuth();
   const repoKey = repo.name;
   const isActive = hoveredRepo?.name === repoKey;
   const isStarred = starred[repoKey];
   const starCount = count[repoKey] ?? repo.stargazers_count;
+  const router = useRouter();
 
   //
   // -------------------------------------------------------------
@@ -28,21 +29,37 @@ export default function StarButton({ repo }: { repo: Repo }) {
   // -------------------------------------------------------------
   //
   let label = "";
-  if (isLogin) label = "Logging in…";
-  else if (isLogged) label = "Logged in!";
-  else if (isStarring) label = "Starring…";
+  if (isStarring) label = "Starring…";
 
   //
   // -------------------------------------------------------------
   // HANDLE STAR CLICK
   // -------------------------------------------------------------
   //
-  async function handleStar() {
-    if (isStarring || isLogin) return;
+async function handleStar() {
+  if (isStarring) return;
 
-    // Ask StarContext to star the repo
-    await starRepo(repo.owner, repo.name);
+  if (!isLogged) {
+    setMessage(
+      repo.name,
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="w-2/3" >
+          <p>You must sign in to star repositories.</p>
+          <button
+            className="px-3 py-2 bg-gray-700 rounded"
+            onClick={() => router.push("/api/github/login")}
+          >
+            Sign in with GitHub
+          </button>
+        </div>
+      </div>
+    );
+    return;
   }
+
+  await starRepo(repo.owner, repo.name);
+}
+
 
   //
   // -------------------------------------------------------------
