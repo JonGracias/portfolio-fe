@@ -45,23 +45,17 @@ export default async function Page() {
             p-4 py-8 sm:py-10
             gap-4 md:gap-2
             items-center text-center
-          "
-        >
+          ">
+          
           <h1
             id="portfolio-heading"
             className="
               md:text-4xl text-2xl font-extrabold
               text-blue-400 dark:text-blue-300
               drop-shadow-sm mb-3
-            "
-          >
+            ">
             Jonathan Gracias – Portfolio
           </h1>
-
- {/*          <p className="max-w-2xl text-gray-700 dark:text-gray-300 md:text-left">
-            A collection of my projects spanning backend automation, web development,
-            and creative technology. Built with Next.js and deployed on Azure.
-          </p> */}
         </section>
 
         {/* Repo Grid */}

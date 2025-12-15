@@ -142,7 +142,7 @@ export default function RepoList() {
   const handleMouseLeave = useCallback(() => {
     clearHoveredRepo();
     clearMessage();
-  }, [clearHoveredRepo, clearMessage]);
+  }, [clearHoveredRepo, clearMessage, isMobile]);
 
   /* -----------------------------------------------------------
    * Scroll Behavior: Hide popups during scroll

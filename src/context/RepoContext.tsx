@@ -41,12 +41,13 @@ export function RepoProvider({
   // FILTERS
   // ---------------------------------------------------------
   const [filters, setFilters] = useState<Filters>({
-    language: "All",
+    languages: [],
     sortBy: "activity",
   });
 
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [displayLanguage, setDisplayLanguage] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function load() {
@@ -79,13 +80,18 @@ export function RepoProvider({
   const visibleRepos = useMemo(() => {
     let list = [...repos];
 
-    if (filters.language !== "All") {
-      list = list.filter((r) =>
-        r.languages
-          ? Object.keys(r.languages).includes(filters.language)
-          : r.language === filters.language
-      );
-    }
+  if (filters.languages.length > 0) {
+    list = list.filter((r) => {
+      const repoLangs = r.languages
+        ? Object.keys(r.languages)
+        : r.language
+        ? [r.language]
+        : [];
+
+      return filters.languages.some((l) => repoLangs.includes(l));
+    });
+  }
+
 
     list.sort((a, b) => {
       switch (filters.sortBy) {
@@ -107,24 +113,38 @@ export function RepoProvider({
   // ---------------------------------------------------------
   // DISPLAY LANGUAGE PER REPO
   // ---------------------------------------------------------
-  const [displayLanguage, setDisplayLanguage] =
-    useState<Record<string, string>>({});
-
   useEffect(() => {
     const map: Record<string, string> = {};
 
     repos.forEach((repo) => {
-      const langs = repo.languages ? Object.keys(repo.languages) : [];
-      const selected =
-        filters.language !== "All" && langs.includes(filters.language)
-          ? filters.language
-          : repo.language ?? "Unknown";
+      const langMap = repo.languages ?? {};
+      const repoLangs = Object.keys(langMap);
+
+      // 1. Find selected languages that exist in this repo
+      const matchingSelected = filters.languages.filter((l) =>
+        repoLangs.includes(l)
+      );
+
+      let selected: string;
+
+      if (matchingSelected.length > 0) {
+        // 2. Pick the one with the highest byte count
+        selected = matchingSelected.reduce((best, current) => {
+          return (langMap[current] ?? 0) > (langMap[best] ?? 0)
+            ? current
+            : best;
+        });
+      } else {
+        // 3. Fallbacks
+        selected = repo.language ?? "Unknown";
+      }
 
       map[repo.name] = selected;
     });
 
     setDisplayLanguage(map);
-  }, [repos, filters.language]);
+  }, [repos, filters.languages]);
+
 
   // ---------------------------------------------------------
   // PROVIDER VALUE
