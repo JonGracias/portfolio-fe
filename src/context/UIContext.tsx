@@ -35,8 +35,6 @@ interface UIContextType {
   clearHoveredRepo: () => void;
   clearLargerRepo: () => void;
   clearAllRepos: () => void;
-  isMobile: boolean;  
-  setIsMobile: (state: boolean) => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -58,17 +56,8 @@ export function UIProvider({ children }: UIProviderProps) {
 
   // Flag used to hide messages temporarily during scrolling
   const [scrolling, setScrolling] = useState<boolean>(false);
-  const [isMobile, setIsMobile ] = useState<boolean>(false);
 
 
-  useEffect(() => {
-    const mq = window.matchMedia("(pointer: coarse)");
-    setIsMobile(mq.matches);
-
-    const handler = () => setIsMobile(mq.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
 
   /* -----------------------------------------------------
    * Larger Repos
@@ -140,9 +129,7 @@ export function UIProvider({ children }: UIProviderProps) {
         clearHoveredRepo,
         clearLargerRepo,
         clearAllRepos,
-        
-        isMobile,
-        setIsMobile,
+      
       }}
     >
       {children}

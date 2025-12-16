@@ -27,7 +27,6 @@ export default memo(function LargeRepoCard({
   const cardRef = useRef<HTMLDivElement>(null);
 
   const {
-    isMobile,
     largerRepo,
     clearAllRepos,
     clearHoveredRepo,

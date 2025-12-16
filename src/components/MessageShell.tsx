@@ -1,5 +1,4 @@
 "use client";
-import { useUIContext } from "@/context/UIContext";
 
 interface MessageShellProps {
   children: React.ReactNode;
@@ -7,25 +6,21 @@ interface MessageShellProps {
 }
 
 export default function MessageShell({ children, onClose }: MessageShellProps) {
-    const {
-      isMobile
-    } = useUIContext();
+
   return (
     <section
       className="
-        sticky top-0 z-10 
         bg-gray-100 dark:bg-neutral-800
         border border-gray-300 dark:border-neutral-700
         shadow-lg rounded-xl
         overflow-y-auto overflow-x-hidden
         custom-scrollbar
-        min-h-[13rem] min-w-[13rem]
-        relative
+        w-[14rem] h-[14rem]
       "
     >
 
       {/* Close Button */}
-        <div className="flex items-center justify-end p-2 w-full h-[3rem]">
+        <div className="flex items-center justify-end p-2">
             <button
                 onClick={(e) => {
                 e.stopPropagation();
@@ -44,7 +39,7 @@ export default function MessageShell({ children, onClose }: MessageShellProps) {
         </div>
 
         {/* Content */}
-        <div className="pb-3 h-[8rem]">
+        <div className="">
             {children}
         </div>
 

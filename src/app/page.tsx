@@ -52,9 +52,9 @@ export default async function Page() {
             className="
               md:text-4xl text-2xl font-extrabold
               text-blue-400 dark:text-blue-300
-              drop-shadow-sm mb-3
+              drop-shadow-sm
             ">
-            Jonathan Gracias – Portfolio
+            Jonathan Gracias
           </h1>
         </section>
 

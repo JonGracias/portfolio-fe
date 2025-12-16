@@ -16,16 +16,24 @@ export default function LanguageEntries({ langMap, clearHoveredRepo, setFilters 
     const keys = Object.keys(langMap);
     if (keys.length === 0) return null;
 
+    /* ────────────────────────────────────────────────
+        Robust percent()
+    ───────────────────────────────────────────────── */
+    function percent(bytes: number | undefined) {
+    if (!totalBytes || !bytes) return "0%";
+    return ((bytes / totalBytes) * 100).toFixed(1) + "%";
+    }
+
     const entries = keys.map((lang) => {
         const bytes = langMap[lang];
         return (
             <button
                 key={lang}
                 className={[
-                "flex flex-col items-center justify-center",
-                "border border-white dark:border-neutral-900",
-                "hover:border-blue-400 dark:hover:border-orange-400",
-                "rounded-md text-sm h-[3.3rem] w-[3.3rem]"
+                    "flex flex-col items-center justify-center",
+                    "border border-white dark:border-neutral-900",
+                    "hover:border-blue-400 dark:hover:border-orange-400",
+                    "rounded-md text-sm h-[3.3rem] w-[3.3rem]"
                 ].join(" ")}
                 onClick={(e) => {
                 e.preventDefault();
@@ -40,18 +48,12 @@ export default function LanguageEntries({ langMap, clearHoveredRepo, setFilters 
     });
 
     return (
-        <section className="w-full h-full">
-        <div className="w-full h-full px-5 grid grid-cols-2 gap-10">
-            {entries}
-        </div>
+        <section className="">
+            <div className="px-5 grid grid-cols-2 gap-10">
+                {entries}
+            </div>
         </section>
     );
-    /* ────────────────────────────────────────────────
-        Robust percent()
-    ───────────────────────────────────────────────── */
-    function percent(bytes: number | undefined) {
-    if (!totalBytes || !bytes) return "0%";
-    return ((bytes / totalBytes) * 100).toFixed(1) + "%";
-    }
+
 }
 

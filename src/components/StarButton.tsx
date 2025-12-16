@@ -82,7 +82,7 @@ async function handleStar() {
   //
   function handleUnstarClick() {
     const dialog = (
-      <section className="mt-6 w-[13rem]">
+      <section className="mt-6">
         <p className="mb-2 text-center">Are you sure you want to unstar this repo?</p>
 
         <div className="flex justify-center gap-4">

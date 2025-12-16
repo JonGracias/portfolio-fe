@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import RepoCard from "./RepoCard";
 import RepoFilters from "./RepoFilters";
-import Popup from "./Popup";
 import { useRepoContext } from "@/context/RepoContext";
 import { useUIContext } from "@/context/UIContext";
 import LargeRepoCard from "./LargeRepoCard";
@@ -27,7 +26,6 @@ export default function RepoList() {
     message,
     clearMessage,
     clearHoveredRepo,
-    isMobile,
     largerRepo,
     setLargerRepo
   } = useUIContext();
@@ -49,6 +47,23 @@ export default function RepoList() {
   /* -----------------------------------------------------------
    * Popup Position Calculation (Single Source of Truth)
    * ----------------------------------------------------------- */
+  const computeMessagePosition = useCallback(
+    (pop:Position) => {
+      const myRem = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+      );
+      // ---------------------------------------
+      // Message Position
+      // ---------------------------------------
+      let top = pop.top;
+      let left = pop.left;
+      let height = pop.height;
+      let width = pop.width;
+      let scale = 1;
+
+      return { top, left, height, width, scale };
+    },[scrollContainerRef, windowWidth]);
+    
   const largeRepoPosition = useCallback(
     (rect: DOMRect) => {
       const mainContainerRect =
@@ -56,19 +71,19 @@ export default function RepoList() {
 
       if (!mainContainerRect) return defaultPos;
 
-      const mobileTop = mainContainerRect.top;
-      const mobileLeft = mainContainerRect.left;
-      const mobileHeight = mainContainerRect.height;
-      const mobileWidth = mainContainerRect.width;
+      const LargerTop = mainContainerRect.top;
+      const LargerLeft = mainContainerRect.left;
+      const LargerHeight = mainContainerRect.height;
+      const LargerWidth = mainContainerRect.width;
       const scale = 1;
 
       // ---------------------------------------
       // Larger Position
       // ---------------------------------------
-      let top = mobileTop;
-      let left = mobileLeft - 16;
-      let height = mobileHeight;
-      let width = mobileWidth;
+      let top = LargerTop;
+      let left = LargerLeft - 16;
+      let height = LargerHeight;
+      let width = LargerWidth;
 
       return { top, left, height, width, scale };
     },[scrollContainerRef, windowWidth]);
@@ -82,12 +97,12 @@ export default function RepoList() {
 
       if (!scrollContainerRect || !mainContainerRect) return defaultPos;
 
-      const myRem = parseFloat(
-        getComputedStyle(document.documentElement).fontSize
-      );
 
       const scrollTop = scrollContainerRect.top;
       const scrollBottom = scrollContainerRect.bottom;
+      const myRem = parseFloat(
+        getComputedStyle(document.documentElement).fontSize
+      );
 
       // ---------------------------------------
       // Desktop Defaults
@@ -115,25 +130,21 @@ export default function RepoList() {
     [scrollContainerRef, windowWidth]
   );
 
-
-
   /* -----------------------------------------------------------
    * Hover Logic
    * ----------------------------------------------------------- */
   const handleMouseEnter = useCallback(
     (element: HTMLDivElement, repo: Repo) => {
-      if (isMobile) {
-        setLargerRepo(repo);
-      }
       setHoveredRepo(repo);
 
 
       const rect = element.getBoundingClientRect();
       const lpos = largeRepoPosition(rect);
       const pos = computePopupPosition(rect);
+      const mess = computeMessagePosition(pos)
 
       setHoverPos(pos);
-      setMessagePos({ ...pos });
+      setMessagePos(mess);
       setLargerPos({ ...lpos });
     },
     [setHoveredRepo, computePopupPosition]
@@ -142,7 +153,7 @@ export default function RepoList() {
   const handleMouseLeave = useCallback(() => {
     clearHoveredRepo();
     clearMessage();
-  }, [clearHoveredRepo, clearMessage, isMobile]);
+  }, [clearHoveredRepo, clearMessage]);
 
   /* -----------------------------------------------------------
    * Scroll Behavior: Hide popups during scroll
@@ -168,6 +179,10 @@ export default function RepoList() {
     };
   }, [setScrolling, clearHoveredRepo, clearMessage]);
 
+  function handleClick(repo: Repo) {
+    setLargerRepo(repo)
+  }
+
 
   /* -----------------------------------------------------------
    * RENDER
@@ -189,33 +204,42 @@ export default function RepoList() {
         {largerRepo && (
           <LargeRepoCard repo={largerRepo} position={largerPos}/>
         )}
-        {/* Mobile Popup */}
-        {isMobile && largerRepo && (
-          <LargeRepoCard repo={largerRepo} position={largerPos}/>
-        )}
       </div>
 
       <div className="Popup_card" onMouseLeave={handleMouseLeave}>
         {/* Hover Popup */}
         {!scrolling && !largerRepo && hoveredRepo && (
-          <div className="">
-            <Popup
-              key={hoveredRepo.name}
-              object={<RepoCard repo={hoveredRepo} />}
-              position={hoverPos}
-            />
+          
+          <div id="popup-card" className="fixed z-[20]"
+            style={{
+              top: hoverPos.top,
+              left: hoverPos.left,
+              width: hoverPos.width,
+              height: hoverPos.height,
+              transform: `scale(${hoverPos.scale})`,
+              transformOrigin: "center center"}}
+            >
+            {<RepoCard repo={hoveredRepo}/>}
           </div>
         )}
+
         {/* Message */}
         {message && hoveredRepo && message.repoName === hoveredRepo.name && (
-          <Popup 
-            key={message.repoName}
-            object = {message.content} 
-            position={messagePos}
-          />
-        )}
 
+          <div className="fixed z-[25] flex items-center justify-center"
+            style={{
+              top: messagePos.top,
+              left: messagePos.left,
+              width: messagePos.width,
+              height: messagePos.height,
+              transform: `scale(${messagePos.scale})`,
+              transformOrigin: "center center"}}
+            >
+            {message.content} 
+          </div>
+        )}
       </div>
+
       {/* Filters */}
         <RepoFilters />
       <div
@@ -223,7 +247,7 @@ export default function RepoList() {
         className="
           scroll-container
           flex-1
-          overflow-y-auto overflow-x-hidden
+          overflow-y-auto 
           custom-scrollbar
           flex flex-col items-center justify-start">
         {/* Grid */}
@@ -234,15 +258,18 @@ export default function RepoList() {
             grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 
             auto-rows-[14rem]
             [grid-template-columns:repeat(auto-fill,_14rem)]
-            isolate
-            px-5 py-10">
+            px-5 py-10
+          ">
           {visibleRepos.map((repo) => (
             <div
+              role="button"
+              tabIndex={0}
+              onClick={() => handleClick(repo)}
               key={repo.id}
               onMouseEnter={(e) => handleMouseEnter(e.currentTarget, repo)}
               className="relative h-[14rem] w-[14rem]">
-              <div className="pointer-events-none">
-                <RepoCard repo={repo} />
+              <div className="pointer-events-none z-[0]">
+                <RepoCard repo={repo} position={defaultPos}/>
               </div>
             </div>
           ))}

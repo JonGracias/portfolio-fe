@@ -24,7 +24,6 @@ export default memo(function RepoCard({
   const infoRef = useRef<RepoCardHandle>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const {
-    isMobile,
     hoveredRepo,
   } = useUIContext();
   const isActive = hoveredRepo?.name === repo.name;
@@ -54,7 +53,7 @@ export default memo(function RepoCard({
   //
   useEffect(() => {
     const card = cardRef.current;
-    if (!card || isMobile) return;
+    if (!card) return;
 
     const forwardWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -69,7 +68,7 @@ export default memo(function RepoCard({
       card.addEventListener("wheel", forwardWheel, { passive: false });
       return () => card.removeEventListener("wheel", forwardWheel);
     }
-  }, [isMobile]);
+  }, []);
 
   const buttonClass = [
     "h-[3.5rem] w-full",
@@ -87,24 +86,20 @@ export default memo(function RepoCard({
   //
   return (
     <section
-      onMouseEnter={isMobile ? undefined : handleEnter}
-      onMouseLeave={isMobile ? undefined : handleLeave}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
       ref={cardRef}
       className={[
         "RepoCard",
-        "group block rounded-xl shadow-sm",
-        "bg-white dark:bg-neutral-900",
+        "group block rounded-xl border shadow-xl dark:shadow-black/70",
+        "border-gray-200 dark:border-neutral-700",
+        "hover:border-blue-400",
         "transition-transform duration-200 ease-out",
+        "bg-white dark:bg-neutral-900",
         "p-4 relative",
-        "w-full",
-        "flex flex-col min-h-[14rem] min-w-[14rem]",
-      ].join(" ")}
-      style={{
-        top: finalPos.top,
-        left: finalPos.left,
-        width: finalPos.width,
-        height: finalPos.height,
-      }}>
+        "w-full h-full",
+        "flex flex-col items-center justify-center",
+      ].join(" ")}>
         
       {/* CLICKABLE INFO PANEL */}
       <InfoPanel
