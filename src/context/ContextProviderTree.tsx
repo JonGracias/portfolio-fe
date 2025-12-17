@@ -12,6 +12,16 @@ interface ContextProviderTreeProps {
   children: React.ReactNode;
   repos: Repo[];
 }
+export function warmApiRoutes(routes: string[]) {
+  for (const route of routes) {
+    fetch(route, {
+      method: "GET",
+      credentials: "include",
+    }).catch(() => {
+      // swallow errors — warmup must never affect UI
+    });
+  }
+}
 
 /**
  * Global context provider order:
@@ -20,7 +30,14 @@ interface ContextProviderTreeProps {
  * 3. LanguageIconProvider – uses RepoContext to load icons for languages.
 */
 export default function ContextProviderTree({ children, repos }: ContextProviderTreeProps) {
-
+  
+  
+  useEffect(() => {
+    warmApiRoutes([
+      "/api/github/is_authenticated",
+      "/api/github/starred-list",
+    ]);
+  }, []);
   return (
     <AuthProvider>  
       <RepoProvider initialRepos={repos}>
