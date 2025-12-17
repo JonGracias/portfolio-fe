@@ -10,7 +10,6 @@ import { useEffect } from "react";
 
 interface ContextProviderTreeProps {
   children: React.ReactNode;
-  repos: Repo[];
 }
 export function warmApiRoutes(routes: string[]) {
   for (const route of routes) {
@@ -29,7 +28,7 @@ export function warmApiRoutes(routes: string[]) {
  * 2. UIProvider – manages global UI state (hover, message shell, scrolling).
  * 3. LanguageIconProvider – uses RepoContext to load icons for languages.
 */
-export default function ContextProviderTree({ children, repos }: ContextProviderTreeProps) {
+export default function ContextProviderTree({ children }: ContextProviderTreeProps) {
   
   
   useEffect(() => {
@@ -40,7 +39,7 @@ export default function ContextProviderTree({ children, repos }: ContextProvider
   }, []);
   return (
     <AuthProvider>  
-      <RepoProvider initialRepos={repos}>
+      <RepoProvider>
         <UIProvider>
           <LanguageIconProvider>
             <StarProvider>

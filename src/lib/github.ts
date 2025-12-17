@@ -3,7 +3,7 @@ import { Repo } from "@/lib/repos";
 
 export async function fetchRepos(): Promise<Repo[]> {
   const res = await fetch("/api/github/repos", {
-    cache: "no-store",
+    next: { revalidate: 300 },
   });
 
   if (!res.ok) {

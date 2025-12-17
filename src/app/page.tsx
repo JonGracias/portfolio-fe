@@ -1,6 +1,6 @@
 ﻿import ContextProviderTree from "@/context/ContextProviderTree";
 import RepoList from "@/components/RepoList";
-import { headers } from "next/headers";
+import { fetchRepos } from "@/lib/github";
 
 
 // --------------------
@@ -26,22 +26,9 @@ export const metadata = {
   },
 };
 
-export default async function Page() {
-  const h = await headers();
-  const host = h.get("host");
-  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
-
-  const res = await fetch(`${protocol}://${host}/api/github/repos`, {
-    next: {
-      revalidate: 600, // 5 minutes
-    },
-  });
-
-  const data = await res.json();
-
-
+export default function Page() {
   return (
-    <ContextProviderTree repos={data}>
+    <ContextProviderTree>
       <main className="
           grid
           grid-rows-[auto,1fr,auto]
