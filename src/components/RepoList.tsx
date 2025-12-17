@@ -191,20 +191,18 @@ export default function RepoList() {
     <div onMouseLeave={handleMouseLeave} 
         ref={mainContainerRef}
         className="
-          relative flex flex-col h-full shadow-md rounded-xl
+          relative flex flex-col h-[99%] rounded-xl
           bg-gray-100 dark:bg-gray-800
           border border-gray-300 dark:border-gray-700
-          w-[19.1rem] md:w-[46.5rem] lg:w-[55rem]
-          [height:calc(100dvh-14rem)]
-          min-h-[18rem]
-          max-h-[90rem]">
+          w-[90%] md:w-[46.5rem] lg:w-[55rem]
+          shadow-[0_8px_24px_rgba(0,0,0,0.5),0_2px_6px_rgba(0,0,0,0.4)]">
 
-      <div className="Large_Card absolute inset-0">
-        {/* Large Repo Popup */}
-        {largerRepo && (
-          <LargeRepoCard repo={largerRepo} position={largerPos}/>
-        )}
-      </div>
+      {largerRepo && (
+        <div className="Large_Card absolute inset-0">
+          {/* Large Repo Popup */}
+            <LargeRepoCard repo={largerRepo} position={largerPos}/>
+        </div>
+      )}
 
       <div className="Popup_card" onMouseLeave={handleMouseLeave}>
         {/* Hover Popup */}
@@ -255,7 +253,7 @@ export default function RepoList() {
         ref={gridContainerRef}
           className="
             grid gap-6
-            grid-cols-1 sm:grid-cols-1 md:grid-cols-3 
+            grid-cols-1 sm:grid-cols-2 md:grid-cols-3 
             auto-rows-[14rem]
             [grid-template-columns:repeat(auto-fill,_14rem)]
             px-5 py-10
@@ -268,7 +266,7 @@ export default function RepoList() {
               key={repo.id}
               onMouseEnter={(e) => handleMouseEnter(e.currentTarget, repo)}
               className="relative h-[14rem] w-[14rem]">
-              <div className="pointer-events-none z-[0]">
+              <div className="pointer-events-none">
                 <RepoCard repo={repo} position={defaultPos}/>
               </div>
             </div>

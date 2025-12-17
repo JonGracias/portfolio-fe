@@ -36,24 +36,31 @@ export const metadata = {
 export default async function Page() {
   return (
     <ContextProviderTree>
-      <main className="relative flex flex-col h-screen overflow-hidden">
+      <main className="
+          grid
+          grid-rows-[auto,1fr,auto]
+          h-dvh
+          overflow-hidden
+        ">
         {/* Header / Intro */}
         <section
           aria-labelledby="portfolio-heading"
           className="
-            flex flex-col w-full max-w-[1000px] mx-auto
-            p-4 py-8 sm:py-10
-            gap-4 md:gap-2
+            flex flex-col
+            w-full max-w-[1000px] mx-auto
+            px-4 py-8 sm:py-10
+            gap-4
             items-center text-center
-          ">
-          
+          "
+        >
           <h1
             id="portfolio-heading"
             className="
               md:text-4xl text-2xl font-extrabold
               text-blue-400 dark:text-blue-300
               drop-shadow-sm
-            ">
+            "
+          >
             Jonathan Gracias
           </h1>
         </section>
@@ -62,19 +69,24 @@ export default async function Page() {
         <section
           aria-label="Repository List"
           className="
-            flex flex-col items-center justify-center w-full h-fit mx-auto
-            overflow-hidden
-            mb-5
+            min-h-0
+            flex justify-center
+    
           "
         >
-        <h2 className="sr-only">Projects</h2>
           <RepoList />
         </section>
 
         {/* Footer */}
-        <footer className="w-full text-center text-sm text-gray-500 my-5">
+        <footer
+          className="
+            text-center text-sm text-gray-500
+            py-4
+          "
+        >
           © {new Date().getFullYear()} Jonathan Gracias — Built with Next.js + Tailwind + Azure
         </footer>
+
       </main>
     </ContextProviderTree>
   );

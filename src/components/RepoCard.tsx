@@ -55,20 +55,21 @@ export default memo(function RepoCard({
     const card = cardRef.current;
     if (!card) return;
 
+    // Only forward wheel events when inside the popup
+    if (!card.closest("#popup-card")) return;
+
     const forwardWheel = (e: WheelEvent) => {
       e.preventDefault();
       const container = document.querySelector(".scroll-container");
       if (container) {
-        container.scrollBy({ top: e.deltaY, behavior: "smooth" });
+        container.scrollBy({ top: e.deltaY });
       }
     };
 
-    // Only enable when card is inside popup container
-    if (card.closest("#popup-card")) {
-      card.addEventListener("wheel", forwardWheel, { passive: false });
-      return () => card.removeEventListener("wheel", forwardWheel);
-    }
+    card.addEventListener("wheel", forwardWheel, { passive: false });
+    return () => card.removeEventListener("wheel", forwardWheel);
   }, []);
+
 
   const buttonClass = [
     "h-[3.5rem] w-full",
@@ -89,17 +90,40 @@ export default memo(function RepoCard({
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
       ref={cardRef}
-      className={[
-        "RepoCard",
-        "group block rounded-xl border shadow-xl dark:shadow-black/70",
-        "border-gray-200 dark:border-neutral-700",
-        "hover:border-blue-400",
-        "transition-transform duration-200 ease-out",
-        "bg-white dark:bg-neutral-900",
-        "p-4 relative",
-        "w-full h-full",
-        "flex flex-col items-center justify-center",
-      ].join(" ")}>
+      className={
+        [
+          "RepoCard",
+          "group block rounded-xl",
+          "bg-white dark:bg-neutral-900",
+
+          // BASE BORDER
+          "border border-gray-200 dark:border-neutral-700",
+
+          // 🔵🟠 HOVER BORDER (theme-aware)
+          "hover:border-blue-400",
+          "dark:hover:border-orange-400",
+
+          // OPTIONAL: active/focus consistency
+          "focus-within:border-blue-400",
+          "dark:focus-within:border-orange-400",
+
+          // SHADOW STACK
+          "shadow-[0_8px_24px_rgba(0,0,0,0.5),0_2px_6px_rgba(0,0,0,0.4)]",
+          "dark:shadow-[0_8px_28px_rgba(0,0,0,0.7),0_2px_8px_rgba(0,0,0,0.6)]",
+
+          // HOVER SHADOW
+          "hover:shadow-[0_16px_40px_rgba(0,0,0,0.18),0_6px_12px_rgba(0,0,0,0.12)]",
+          "dark:hover:shadow-[0_18px_48px_rgba(0,0,0,0.75),0_6px_14px_rgba(0,0,0,0.55)]",
+
+          // TRANSITIONS
+          "transition-[border-color,box-shadow,transform] duration-200 ease-out",
+
+          "p-4 relative",
+          "w-full h-full",
+          "flex flex-col items-center justify-center",
+        ].join(" ")
+
+      }>
         
       {/* CLICKABLE INFO PANEL */}
       <InfoPanel
