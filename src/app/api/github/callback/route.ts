@@ -19,16 +19,19 @@ export async function GET(req: Request) {
   const token = tokenJson.access_token as string | undefined;
   if (!token) return new NextResponse("Token exchange failed", { status: 500 });
 
-  const redirectTo = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3000";
+  const redirectTo = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
   const res = NextResponse.redirect(redirectTo);
 
   // set cookie on the response
   res.cookies.set("gh_token", token, {
     httpOnly: true,
+    secure: true,
     sameSite: "lax",
     path: "/",
+    domain: "gracias.cloud",
     maxAge: 60 * 60 * 6, // 6 hours
   });
+
 
   return res;
 }
