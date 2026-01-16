@@ -1,7 +1,7 @@
 {
   "forwardingGateway": {
     "allowedForwardedHosts": [
-      "gracias.cloud",
+      "jon.gracias.cloud",
       "www.gracias.cloud",
       "gracias-edge-acbcc9djbsbjebh4.z01.azurefd.net"
     ],
